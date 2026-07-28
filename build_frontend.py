@@ -147,7 +147,7 @@ function renderTable(){
     var u = list[i];
     var sizeBadge = u.size==='巨型' ? tag(u.size,'giant') : u.size==='中型' ? tag(u.size,'air') : tag(u.size,'ground');
     var flyBadge = u.move==='飞行' ? tag('飞行','air') : '';
-    html += '<tr onclick="showDetail(\x27'+u.name+'\x27)" style="cursor:pointer">';
+    html += '<tr data-unit="'+u.name+'" class="unit-row" style="cursor:pointer">';
     html += '<td><div class="unit-name">'+u.name+' '+sizeBadge+' '+flyBadge+'</div></td>';
     html += '<td>'+u.size+'</td>';
     html += '<td class="num cost-val">'+fmt(u.cost)+'</td>';
@@ -182,7 +182,7 @@ function renderCards(){
     var u = list[i];
     var sizeBadge = u.size==='巨型' ? tag(u.size,'giant') : u.size==='中型' ? tag(u.size,'air') : tag(u.size,'ground');
     var flyBadge = u.move==='飞行' ? tag('飞行','air') : '';
-    html += '<div class="card" onclick="showDetail(\x27'+u.name+'\x27)" style="cursor:pointer">';
+    html += '<div class="card" data-unit="'+u.name+'" style="cursor:pointer">';
     html += '<h3>'+u.name+' '+sizeBadge+' '+flyBadge+'</h3>';
     html += '<div class="card-row"><span class="card-label">造价</span><span class="card-value cost-val">'+fmt(u.cost)+'</span></div>';
     html += '<div class="card-row"><span class="card-label">血量</span><span class="card-value hp-val">'+fmt(u.hp)+'</span></div>';
@@ -232,6 +232,11 @@ document.querySelectorAll('th').forEach(function(th){
 });
 document.addEventListener('keydown', function(e){if(e.key==='Escape') closeDetail()});
 
+// Click delegation - no inline onclick needed
+document.addEventListener('click', function(e){
+  var el = e.target.closest && e.target.closest('[data-unit]');
+  if(el){ showDetail(el.getAttribute('data-unit')); }
+});
 // INIT
 renderTable();
 </script>
