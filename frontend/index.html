@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mechabellum 兵种数据 | 钢铁指挥官</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --border: #30363d;
+  --text: #e6edf3; --text-dim: #8b949e; --accent: #58a6ff;
+  --hp: #f85149; --atk: #ffa657; --spd: #7ee787;
+  --giant: #d2a8ff; --air: #79c0ff; --small: #8b949e;
+  --row-hover: #1c2128;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+.container { max-width:1400px; margin:0 auto; padding:16px; }
+header { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 0; position:sticky; top:0; z-index:10; }
+header .container { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+h1 { font-size:20px; white-space:nowrap; }
+h1 span { color:var(--accent); }
+.tabs { display:flex; gap:4px; margin-left:auto; }
+.tab { padding:6px 16px; border:1px solid var(--border); border-radius:6px; cursor:pointer; background:var(--surface); color:var(--text-dim); font-size:13px; transition:.2s; }
+.tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.tab:hover:not(.active) { color:var(--text); }
+.filters { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; align-items:center; }
+.filters input, .filters select { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 12px; color:var(--text); font-size:13px; }
+.filters input { flex:1; min-width:200px; max-width:320px; }
+.stat-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; }
+.stat-badge.giant { background:rgba(210,168,255,.15); color:var(--giant); }
+.stat-badge.air { background:rgba(121,192,255,.15); color:var(--air); }
+.stat-badge.ground { background:rgba(139,148,158,.15); color:var(--small); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { position:sticky; top:56px; background:var(--surface); padding:10px 8px; text-align:left; border-bottom:2px solid var(--border); cursor:pointer; user-select:none; white-space:nowrap; }
+th:hover { color:var(--accent); }
+th.sorted::after { content:' \25B2'; font-size:10px; }
+th.sorted.desc::after { content:' \25BC'; }
+td { padding:8px; border-bottom:1px solid var(--border); }
+tr:hover td { background:var(--row-hover); }
+.num { text-align:right; font-variant-numeric:tabular-nums; }
+.hp-val { color:var(--hp); font-weight:600; }
+.atk-val { color:var(--atk); font-weight:600; }
+.spd-val { color:var(--spd); font-weight:600; }
+.cost-val { color:var(--accent); }
+.unit-name { font-weight:600; display:flex; align-items:center; gap:6px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+.card h3 { margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.card-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(48,54,61,.5); }
+.card-row:last-child { border:none; }
+.card-label { color:var(--text-dim); }
+.card-value { font-weight:600; }
+.detail-panel { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; z-index:100; max-width:480px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,.5); }
+.detail-panel.show { display:block; }
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:99; }
+.overlay.show { display:block; }
+.close-btn { position:absolute; top:12px; right:12px; background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer; }
+.timeline { position:relative; padding-left:24px; }
+.timeline::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:var(--border); }
+.timeline-item { position:relative; margin-bottom:20px; }
+.timeline-item::before { content:''; position:absolute; left:-20px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--accent); }
+.timeline-date { color:var(--text-dim); font-size:12px; }
+.timeline-title { font-weight:600; }
+.timeline-changes { font-size:13px; margin-top:4px; }
+.timeline-changes li { padding:2px 0; }
+.empty { text-align:center; padding:40px; color:var(--text-dim); }
+@media (max-width:768px) {
+  .card-grid { grid-template-columns:1fr; }
+  header .container { flex-direction:column; align-items:flex-start; }
+  .tabs { margin-left:0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<div class="container">
+  <h1><span>Mechabellum</span> 兵种数据</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="table">📊 数据表</div>
+    <div class="tab" data-tab="cards">🃏 卡片视图</div>
+    <div class="tab" data-tab="changes">📋 变更记录</div>
+    <div class="tab" data-tab="about">ℹ️ 关于</div>
+  </div>
+</div>
+</header>
+
+<div class="container">
+
+<!-- 表格视图 -->
+<div id="tab-table" class="tab-content">
+  <div class="filters">
+    <input type="text" id="search" placeholder="搜索单位名称..." oninput="renderTable()">
+    <select id="typeFilter" onchange="renderTable()">
+      <option value="">全部体型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
+    </select>
+    <select id="moveFilter" onchange="renderTable()">
+      <option value="">全部移动</option><option value="飞行">飞行</option><option value="地面">地面</option>
+    </select>
+    <span style="color:var(--text-dim);font-size:12px;" id="countDisplay"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="unitTable">
+      <thead><tr>
+        <th data-sort="name">兵种</th><th data-sort="体型">体型</th>
+        <th data-sort="cost" class="num">造价</th><th data-sort="hp" class="num">血量</th>
+        <th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击</th>
+        <th data-sort="splash" class="num">溅射</th><th data-sort="interval" class="num">间隔</th>
+        <th data-sort="range" class="num">射程</th><th data-sort="count" class="num">数量</th>
+        <th data-sort="slots" class="num">格子</th><th data-sort="unlock_cost" class="num">解锁</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 卡片视图 -->
+<div id="tab-cards" class="tab-content" style="display:none">
+  <div class="filters">
+    <input type="text" id="cardSearch" placeholder="搜索..." oninput="renderCards()">
+    <select id="cardTypeFilter" onchange="renderCards()">
+      <option value="">全部</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
+    </select>
+  </div>
+  <div class="card-grid" id="cardGrid"></div>
+</div>
+
+<!-- 变更记录 -->
+<div id="tab-changes" class="tab-content" style="display:none">
+  <div class="card" style="margin-bottom:20px">
+    <p style="color:var(--text-dim)">变更记录来自 <code>cache/change_log.json</code>，每次检测到平衡性调整并更新数据表后会记录在此。</p>
+  </div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- 关于 -->
+<div id="tab-about" class="tab-content" style="display:none">
+  <div class="card" style="max-width:600px;margin:20px auto">
+    <h3>Mechabellum 兵种数据 | 钢铁指挥官</h3>
+    <p style="color:var(--text-dim);margin:12px 0">
+      数据来源：游戏内手动采集（2026-07-29 版本 1.11.1.1.2207）<br>
+      自动监控：Steam RSS → 平衡性检测 → 数据表更新<br>
+      技术栈：Python + openpyxl + Anthropic Claude API + GitHub Pages
+    </p>
+    <p style="color:var(--text-dim)">
+      <a href="https://github.com/LuckLuffy/MechabellumData" style="color:var(--accent)">GitHub 仓库</a>
+    </p>
+  </div>
+</div>
+
+</div>
+
+<!-- 单位详情弹窗 -->
+<div class="overlay" id="overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+  <button class="close-btn" onclick="closeDetail()">&times;</button>
+  <div id="detailContent"></div>
+</div>
+
+<script src="unit_data.js"></script>
+<script>
+// ============ DATA ============
+let UNIT_DATA = [];
+let CHANGE_LOG = [];
+let currentSort = { field: 'cost', desc: false };
+
+// unit_data.js 中定义了 UNIT_DATA 数组，直接使用
+UNIT_DATA = UNIT_DATA.map(u => ({
+  ...u,
+  cost: parseFloat(u.造价)||0, hp: parseFloat(u.单体血量)||0,
+  speed: parseFloat(u.移速)||0, atk: parseFloat(u.单次攻击)||0,
+  splash: parseFloat(u.溅射范围)||0, interval: parseFloat(u.攻击间隔)||0,
+  range: parseFloat(u.射程)||0, count: parseFloat(u.数量)||0,
+  slots: parseFloat(u.占用格子)||0, unlock_cost: parseFloat(u.解锁费用)||0,
+  anti_air: parseFloat(u.对空)||0,
+}));
+renderTable();
+renderCards();
+
+fetch('../cache/change_log.json')
+  .then(r => r.ok ? r.json() : [])
+  .then(data => { CHANGE_LOG = data; renderTimeline(); })
+  .catch(() => {});
+
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(x => x.style.display = 'none');
+    document.getElementById('tab-' + t.dataset.tab).style.display = '';
+    if (t.dataset.tab === 'changes') renderTimeline();
+  });
+});
+
+// ============ TABLE ============
+function renderTable() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const tf = document.getElementById('typeFilter').value;
+  const mf = document.getElementById('moveFilter').value;
+
+  let data = UNIT_DATA.filter(u => {
+    if (q && !u.name.toLowerCase().includes(q)) return false;
+    if (tf && u.体型 !== tf) return false;
+    if (mf && u.移动类型 !== mf) return false;
+    return true;
+  });
+
+  const sf = currentSort.field;
+  data.sort((a,b) => {
+    let va = a[sf], vb = b[sf];
+    if (sf === 'name' || sf === '体型') return currentSort.desc ? String(vb).localeCompare(String(va)) : String(va).localeCompare(String(vb));
+    return currentSort.desc ? (vb||0) - (va||0) : (va||0) - (vb||0);
+  });
+
+  const tbody = document.querySelector('#unitTable tbody');
+  tbody.innerHTML = data.map(u => `
+    <tr onclick="showDetail('${u.name}')" style="cursor:pointer">
+      <td><div class="unit-name">${u.name} ${sizeBadge(u.体型)} ${u.移动类型==='飞行'?flyBadge():''}</div></td>
+      <td>${u.体型}</td>
+      <td class="num cost-val">${fmt(u.cost)}</td>
+      <td class="num hp-val">${fmt(u.hp)}</td>
+      <td class="num spd-val">${fmt(u.speed)}</td>
+      <td class="num atk-val">${fmt(u.atk)}</td>
+      <td class="num">${fmt(u.splash)}</td>
+      <td class="num">${fmt(u.interval)}</td>
+      <td class="num">${fmt(u.range)}</td>
+      <td class="num">${fmt(u.count)}</td>
+      <td class="num">${fmt(u.slots)}</td>
+      <td class="num">${fmt(u.unlock_cost)}</td>
+    </tr>`).join('');
+
+  document.getElementById('countDisplay').textContent = `显示 ${data.length} / ${UNIT_DATA.length} 单位`;
+
+  // Sort indicators
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sorted', 'desc');
+    if (th.dataset.sort === currentSort.field) {
+      th.classList.add('sorted');
+      if (currentSort.desc) th.classList.add('desc');
+    }
+  });
+}
+
+document.querySelectorAll('th').forEach(th => {
+  th.addEventListener('click', () => {
+    const f = th.dataset.sort;
+    if (currentSort.field === f) currentSort.desc = !currentSort.desc;
+    else { currentSort.field = f; currentSort.desc = false; }
+    renderTable();
+  });
+});
+
+// ============ CARDS ============
+function renderCards() {
+  const q = (document.getElementById('cardSearch').value || '').toLowerCase();
+  const tf = document.getElementById('cardTypeFilter').value;
+  let data = UNIT_DATA.filter(u => {
+    if (q && !u.name.toLowerCase().includes(q)) return false;
+    if (tf && u.体型 !== tf) return false;
+    return true;
+  });
+
+  document.getElementById('cardGrid').innerHTML = data.map(u => `
+    <div class="card" onclick="showDetail('${u.name}')" style="cursor:pointer">
+      <h3>${u.name} ${sizeBadge(u.体型)} ${u.移动类型==='飞行'?flyBadge():''}</h3>
+      <div class="card-row"><span class="card-label">造价</span><span class="card-value cost-val">${fmt(u.cost)}</span></div>
+      <div class="card-row"><span class="card-label">血量</span><span class="card-value hp-val">${fmt(u.hp)}</span></div>
+      <div class="card-row"><span class="card-label">攻击</span><span class="card-value atk-val">${fmt(u.atk)}</span></div>
+      <div class="card-row"><span class="card-label">移速</span><span class="card-value spd-val">${u.speed}</span></div>
+      <div class="card-row"><span class="card-label">射程</span><span class="card-value">${fmt(u.range)}</span></div>
+      <div class="card-row"><span class="card-label">数量 × 格子</span><span class="card-value">${fmt(u.count)} × ${fmt(u.slots)}</span></div>
+    </div>`).join('');
+}
+
+// ============ DETAIL ============
+function showDetail(name) {
+  const u = UNIT_DATA.find(x => x.name === name);
+  if (!u) return;
+  const fields = [
+    ['造价', 'cost-val'], ['单体血量', 'hp-val'], ['移速', 'spd-val'],
+    ['单次攻击', 'atk-val'], ['溅射范围', ''], ['攻击间隔', ''],
+    ['射程', ''], ['对空', ''], ['数量', ''], ['占用格子', ''],
+    ['解锁费用', ''], ['伤害血量', ''], ['升级经验要求', ''], ['提供经验', ''],
+  ];
+  document.getElementById('detailContent').innerHTML = `
+    <h3>${u.name} ${sizeBadge(u.体型)} ${u.移动类型==='飞行'?flyBadge():''}</h3>
+    <div style="margin-top:12px">
+      ${fields.map(([f,c]) => {
+        const v = u[f] !== undefined ? u[f] : '-';
+        return `<div class="card-row"><span class="card-label">${f}</span><span class="card-value ${c}">${v}</span></div>`;
+      }).join('')}
+    </div>`;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('detailPanel').classList.add('show');
+}
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('detailPanel').classList.remove('show');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+// ============ TIMELINE ============
+function renderTimeline() {
+  const el = document.getElementById('timeline');
+  if (!CHANGE_LOG.length) {
+    el.innerHTML = '<div class="empty">暂无变更记录。检测到平衡性调整后会自动记录。</div>';
+    return;
+  }
+  el.innerHTML = CHANGE_LOG.slice().reverse().map(c => `
+    <div class="timeline-item">
+      <div class="timeline-date">${c.date?.slice(0,10) || '?'} · v${c.version || '?'}</div>
+      <div class="timeline-title">${c.title || ''}</div>
+      <ul class="timeline-changes">
+        ${(c.changes||[]).map(ch => `<li>${ch.unit} ${ch.field}: ${ch.old||'?'} → ${ch.new||'?'}</li>`).join('')}
+      </ul>
+    </div>`).join('');
+}
+
+// ============ HELPERS ============
+function fmt(v) { return v == null || isNaN(v) ? '-' : Number.isInteger(v) ? v.toLocaleString() : v; }
+function sizeBadge(t) {
+  const cls = t === '巨型' ? 'giant' : t === '中型' ? 'air' : 'ground';
+  return `<span class="stat-badge ${cls}">${t}</span>`;
+}
+function flyBadge() { return '<span class="stat-badge air">✈飞行</span>'; }
+</script>
+</body>
+</html>
