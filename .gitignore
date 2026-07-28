@@ -23,6 +23,9 @@ __pycache__/
 *.pyc
 .idea/
 
+# 密钥和本地配置（不提交）
+.env
+
 # 监控系统缓存和输出
 cache/
 outputs/
