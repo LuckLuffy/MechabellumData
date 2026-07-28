@@ -164,10 +164,12 @@ let UNIT_DATA = [];
 let CHANGE_LOG = [];
 let currentSort = { field: 'cost', desc: false };
 
+let UNIT_DATA = [];
+
 // 等待 DOM 就绪
 document.addEventListener('DOMContentLoaded', () => {
-if (typeof UNIT_DATA === 'undefined') { console.error('unit_data.js not loaded!'); return; }
-UNIT_DATA = UNIT_DATA.map(u => ({
+if (typeof RAW_UNIT_DATA === 'undefined') { console.error('unit_data.js not loaded!'); return; }
+UNIT_DATA = RAW_UNIT_DATA.map(u => ({
   ...u,
   cost: parseFloat(u.造价)||0, hp: parseFloat(u.单体血量)||0,
   speed: parseFloat(u.移速)||0, atk: parseFloat(u.单次攻击)||0,

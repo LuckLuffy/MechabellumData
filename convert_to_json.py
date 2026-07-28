@@ -59,7 +59,7 @@ def main():
     # Also output as JS for the frontend
     js_path = OUTPUT_PATH.replace('.json', '.js')
     with open(js_path, "w", encoding="utf-8") as f:
-        f.write("const UNIT_DATA = " + json.dumps(units, ensure_ascii=False) + ";")
+        f.write("const RAW_UNIT_DATA = " + json.dumps(units, ensure_ascii=False) + ";")
 
     print(f"[OK] {len(units)} units → {OUTPUT_PATH}")
     print(f"[OK] JS data → {js_path}")
