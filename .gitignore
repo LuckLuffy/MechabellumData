@@ -23,6 +23,12 @@ __pycache__/
 *.pyc
 .idea/
 
+# 监控系统缓存和输出
+cache/
+outputs/
+
 # 临时文件
 *.tmp
 /tmp/
+headers_output.txt
+all_data.txt
