@@ -337,3 +337,80 @@ CE脚本策略：
 - 推测根因：CAB压缩封装或服务器下发，本地无完整副本
 
 产出：项目复盘.md
+
+======================================================================
+2026-07-29 对话记录 #8：平衡性监控系统开发
+----------------------------------------------------------------------
+需求：
+以用户手动采集的数据表（钢铁指挥官兵种单位数据表7.29.xlsx）为基准，
+开发自动监控 Steam 公告 → 检测平衡性调整 → 更新数据表 → 输出新表
+
+架构设计：
+- balance_monitor.py：主入口（check/test/init 三种模式）
+- steam_fetcher.py：RSS 抓取（https://store.steampowered.com/feeds/news/app/669330/）+ GUID 缓存
+- change_parser.py：关键词分类 + Claude API 结构化提取数值变动
+- sheet_updater.py：openpyxl 读写更新 + 版本化管理
+- config.py：常量配置（列名映射、关键词列表、RSS URL）
+
+数据表结构（19列）：
+兵种名称 | 造价 | 单体血量 | 移速 | 单次攻击 | 溅射范围 | 攻击间隔 |
+射程 | 对空 | 数量 | 占用格子 | 解锁费用 | 伤害血量 | 升级经验要求 | 提供经验
+
+含36行数据：防御墙、速射炮、弧光、猎犬、反装甲炮、长弓、磁暴、魔眼、
+爬虫、尖牙、火獾、犀牛、暴雨、剑齿虎、铁锤、狼蛛、鬼鳐、凤凰、钢球、
+骇客、兵峰、野马、狂蝎、先知、恶灵、台风、火神、沙虫、堡垒、熔点、
+雷霆、霸主、深渊、泰山、战争工厂、丧钟
+
+运行方式：
+- python balance_monitor.py          # 检查新公告
+- python balance_monitor.py --init   # 初始化缓存
+- python balance_monitor.py --test   # 测试模式
+
+关键设计：
+- 手动触发（Steam 更新频率低）
+- Claude API 解析自然语言变动（比正则更可靠）
+- 离线模式：如无 API key，公告保存到 cache/parsed_posts/ 供手动分析
+- 输出带版本号不覆盖原表
+
+技术栈：Python + openpyxl + Anthropic SDK + Steam RSS
+
+======================================================================
+2026-07-29 对话记录 #9：前端展示界面开发
+----------------------------------------------------------------------
+需求：
+开发适配项目的兵种数据前端展示页面
+
+实现：
+- 纯静态 HTML（build_frontend.py 生成）
+- 数据内嵌无外部依赖，双击即开
+- 三个视图：数据表（排序/筛选/搜索）、卡片视图、关于页
+- 深色科幻主题，血量/攻击/速度分色高亮
+- 点击行/卡片弹出详情
+
+前端Bug修复历程：
+1. 初始版本：外部 unit_data.js 加载 → file:// CORS 阻止
+2. 改为内嵌 JSON → const 重复赋值报错 → 改为 RAW_UNIT_DATA
+3. 内嵌仍空白 → DOMContentLoaded 中 oninput 处理器未就绪 → 去掉包装
+4. 还是空白 → \x27 被 Python 吃掉导致 onclick 参数无引号 →
+   改为 data-unit 属性 + 事件委托彻底解决
+5. JS 语法检查通过（node --check），确认修复
+
+关键文件：
+- frontend/index.html：单文件完整应用（21KB，含36单位数据）
+- build_frontend.py：自动构建脚本（读 JSON → 生成 HTML）
+- convert_to_json.py：Excel → JSON + JS 转换
+
+技术栈：Vanilla HTML/CSS/JS (ES5)，零依赖，零构建工具
+
+======================================================================
+2026-07-29 对话记录 #10：GitHub 上传 + IDEA 配置
+----------------------------------------------------------------------
+操作：
+1. 初始化 Git 仓库，添加 .gitignore（排除 tools/、mech_data/、cache/）
+2. 配置远程仓库 LuckLuffy/MechabellumData
+3. 通过代理 (127.0.0.1:7897) 推送成功
+4. 编写 README.md（项目说明、文档索引、数据模型速览）
+5. IDEA 项目 Python 解释器配置（指向 D:\wyq\miniconda3\python.exe）
+6. README 中补充 About 说明
+
+仓库地址：https://github.com/LuckLuffy/MechabellumData
