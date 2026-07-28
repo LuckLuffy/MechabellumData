@@ -1,0 +1,28 @@
+# AssetRipper 导出数据
+mech_data/
+mech_data2/
+ripper_output/
+
+# 下载的工具二进制文件
+tools/*.zip
+tools/*.exe
+tools/Il2CppDumper/
+tools/AssetRipper/
+tools/BepInEx/
+
+# Il2CppDumper 生成的大文件
+tools/Il2CppDumper_output/
+**/dump.cs
+**/script.json
+**/il2cpp.h
+**/stringliteral.json
+**/DummyDll/
+
+# Python
+__pycache__/
+*.pyc
+.idea/
+
+# 临时文件
+*.tmp
+/tmp/

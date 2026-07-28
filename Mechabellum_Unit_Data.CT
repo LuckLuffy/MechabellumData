@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="44">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>1</ID>
+      <Description>"[勾选] 搜索单位数据 - 方式A(组搜索)"</Description>
+      <Color>FF0000</Color>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript><![CDATA[[ENABLE]
+{$lua}
+if syntaxcheck then return end
+
+-- 用 memscan 搜索 HP=263 和 ATK=79 相邻的 8 字节
+-- 比单个值精准得多
+
+print('\n=== Mechabellum Unit Scanner ===')
+print('Using CE memscan for [HP=263, ATK=79] pair scan...')
+
+local ms = createMemScan()
+ms.OnlyOneResult = false
+ms.firstScan(soExactValue, vtGrouped, rtTruncated, '263 79', '',
+  0, 0x7FFFFFFFFFFF, '', 0, '', 0, 0, 0, false)
+ms.waitTillDone()
+
+local found = ms.FoundList
+if found == nil or found.Count == 0 then
+  print('Group scan found nothing.')
+  print('Deploy 1 Crawler in Training mode, then re-check this box.')
+  ms.destroy()
+  return
+end
+
+print(string.format('Group scan matches: %d', found.Count))
+
+-- 读取并验证
+local OFF_LIFE      = 0x38
+local OFF_DAMAGE    = 0x3C
+local OFF_MOVESPEED = 0x40
+local OFF_ISFLY     = 0x44
+local OFF_SKILL     = 0x60
+local OFF_MECHTYPE  = 0x64
+local OFF_MOVETYPE  = 0x68
+local OFF_ATKSTR    = 0x90
+
+local TYPE_NAMES = {'Small','Medium','Huge'}
+local MOVE_NAMES = {'Normal','Underground','Cloak'}
+
+function SRI(a) local o,r=pcall(readInteger,a);if o then return r else return 0 end end
+function SRP(a) local o,r=pcall(readQword,a);if o then return r else return 0 end end
+function isOK(mt,mvt,astr) return (mt==0 or mt==1 or mt==2) and (mvt==0 or mvt==1 or mvt==2) and astr>=0 and astr<30 end
+
+-- 对每个匹配地址，验证其作为 MechData 的合理性
+-- 匹配地址是 life 的位置，MechData 基址 = match - 0x38
+local valid = {}
+for i = 0, found.Count - 1 do
+  local addr = tonumber(found[i].Value, 16) or found[i].Value
+  if type(addr) == 'number' and addr > 0 then
+    local base = addr - OFF_LIFE
+    if base > 0x10000 then
+      local mt = SRI(base + OFF_MECHTYPE)
+      local mvt = SRI(base + OFF_MOVETYPE)
+      local astr = SRI(base + OFF_ATKSTR)
+      if isOK(mt, mvt, astr) then
+        -- 二次验证：damage 也在正确位置
+        local dmg = SRI(base + OFF_DAMAGE)
+        local spd = SRI(base + OFF_MOVESPEED)
+        if dmg == 79 and spd == 16 then
+          table.insert(valid, base)
+          print(string.format('  Crawler MechData @ 0x%X', base))
+        end
+      end
+    end
+  end
+end
+
+if #valid == 0 then
+  print('No valid MechData in results.')
+  print('Try method B: manually search 4-byte 263, browse memory, note the address.')
+  ms.destroy()
+  return
+end
+
+ms.destroy()
+
+-- 找到了 Crawler 的 MechData，反查完整列表
+local target = valid[1]
+print(string.format('\nCrawler MechData @ 0x%X', target))
+
+-- 构造该指针的字节表示用于搜索
+local function ptrBytes(v)
+  local b = {}
+  for i = 0, 7 do b[i+1] = string.format('%02X', (v >> (i*8)) & 0xFF) end
+  return table.concat(b, ' ')
+end
+
+-- 搜索指向该 MechData 的指针（定位数组）
+local ptrStr = ptrBytes(target)
+print('Searching for pointer to this MechData in arrays...')
+
+local ms2 = createMemScan()
+ms2.firstScan(soExactValue, vtByteArray, rtTruncated, ptrStr, '',
+  0x10000000000, 0x1A000000000, '', 0, '', 0, 0, 0, false)
+ms2.waitTillDone()
+
+local mech_items, mech_count = nil, 0
+if ms2.FoundList and ms2.FoundList.Count > 0 then
+  for i = 0, ms2.FoundList.Count - 1 do
+    local paddr = tonumber(ms2.FoundList[i].Value, 16)
+    if paddr and paddr > 0x10000000000 then
+      for off = 0, 0x200, 8 do
+        local la = paddr - off
+        if la > 0x10000 then
+          local it = SRP(la)
+          local sz = SRI(la + 0x10)
+          if it == paddr and sz >= 10 and sz <= 80 then
+            mech_items = it
+            mech_count = sz
+            print(string.format('[FOUND] mechDatas list: items=0x%X size=%d', it, sz))
+            break
+          end
+        end
+      end
+    end
+    if mech_items then break end
+  end
+end
+ms2.destroy()
+
+if mech_items == nil then
+  print('Array not found. Outputting single MechData only.')
+  mech_items = target
+  mech_count = 1
+end
+
+-- 输出
+print('\n' .. string.rep('=', 78))
+print(string.format('  UNIT DATA - %d entries', mech_count))
+print(string.rep('=', 78))
+print(string.format('%-4s %-9s %-7s %-4s %-4s %-7s %-10s %-6s',
+  '#','HP','ATK','SPD','FLY','TYPE','MOVE','SKILL'))
+print(string.rep('-', 78))
+
+for i = 0, mech_count - 1 do
+  local ptr = (mech_count == 1) and mech_items or SRP(mech_items + i*8)
+  if ptr == 0 then goto skip end
+  local life = SRI(ptr + OFF_LIFE)
+  local dmg  = SRI(ptr + OFF_DAMAGE)
+  local spd  = SRI(ptr + OFF_MOVESPEED)
+  local fly  = SRI(ptr + OFF_ISFLY)
+  local sk   = SRI(ptr + OFF_SKILL)
+  local mt   = SRI(ptr + OFF_MECHTYPE)
+  local mvt  = SRI(ptr + OFF_MOVETYPE)
+  local ts = TYPE_NAMES[mt+1] or ('?'..mt)
+  local ms = MOVE_NAMES[mvt+1] or ('?'..mvt)
+  print(string.format('%-4d %-9d %-7d %-4d %-4s %-7s %-10s %-6d',
+    i, life, dmg, spd, (fly~=0)and'YES'or'-', ts, ms, sk))
+  ::skip::
+end
+print(string.rep('=', 78))
+print('[DONE] Ctrl+C to copy from Lua Engine window')
+
+[DISABLE]
+]]></AssemblerScript>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>2</ID>
+      <Description>"[勾选] 搜索单位数据 - 方式B(搜费用100+01 00 00 00)"</Description>
+      <Color>0000FF</Color>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript><![CDATA[[ENABLE]
+{$lua}
+if syntaxcheck then return end
+
+-- 搜 CardData: baseMoney=100 且 mechID=1 (Crawler) 相邻
+-- CardData 偏移: baseMoney(0x58) int, mechID(0x80) int
+-- 但实际 IL2CPP 布局需验证
+
+print('\n=== Method B: CardData pattern [cost=100, mechID=1] ===')
+
+local ms = createMemScan()
+ms.firstScan(soExactValue, vtGrouped, rtTruncated, '100 1', '',
+  0, 0x7FFFFFFFFFFF, '', 0, '', 0, 0, 0, false)
+ms.waitTillDone()
+
+local found = ms.FoundList
+if found == nil or found.Count == 0 then
+  print('Group scan found nothing.')
+  print('Try: deploy Crawler, search 4-byte 263, then Next Scan for 79 (4-byte)')
+  ms.destroy()
+  return
+end
+
+print(string.format('Matches: %d', found.Count))
+
+-- 对每个匹配，检查是否是 CardData
+local CARDOFF_MONEY = 0x58
+local CARDOFF_MECHID = 0x80
+
+function SRI(a) local o,r=pcall(readInteger,a);if o then return r else return 0 end end
+function SRP(a) local o,r=pcall(readQword,a);if o then return r else return 0 end end
+
+local valid = {}
+for i = 0, found.Count - 1 do
+  local addr = tonumber(found[i].Value, 16) or found[i].Value
+  if type(addr) == 'number' and addr > 0x10000 then
+    -- 匹配地址是 baseMoney 的位置，CardData 基址 = addr - 0x58
+    local base = addr - CARDOFF_MONEY
+    -- 验证 mechID (应=1), mechCount (应=24 for Crawler)
+    local mid = SRI(base + CARDOFF_MECHID)
+    local cnt = SRI(base + 0x84)  -- mechCount
+    local slot = SRI(base + 0x88) -- slotSize
+    if mid == 1 and cnt > 0 and cnt <= 30 and slot > 0 and slot <= 10 then
+      table.insert(valid, base)
+      print(string.format('  CardData @ 0x%X (mechCount=%d slot=%d)', base, cnt, slot))
+    end
+  end
+end
+ms.destroy()
+
+if #valid == 0 then
+  print('No valid CardData found with cost=100 mechID=1.')
+  return
+end
+
+-- 从 CardData 反查 cardDatas 列表
+local target = valid[1]
+print(string.format('\nCardData @ 0x%X, searching for cardDatas array...', target))
+
+local function ptrBytes(v)
+  local b = {}
+  for i = 0, 7 do b[i+1] = string.format('%02X', (v >> (i*8)) & 0xFF) end
+  return table.concat(b, ' ')
+end
+
+local ms2 = createMemScan()
+ms2.firstScan(soExactValue, vtByteArray, rtTruncated, ptrBytes(target), '',
+  0x10000000000, 0x1A000000000, '', 0, '', 0, 0, 0, false)
+ms2.waitTillDone()
+
+local card_items, card_count = nil, 0
+if ms2.FoundList and ms2.FoundList.Count > 0 then
+  for i = 0, ms2.FoundList.Count - 1 do
+    local paddr = tonumber(ms2.FoundList[i].Value, 16)
+    if paddr and paddr > 0x10000000000 then
+      for off = 0, 0x200, 8 do
+        local la = paddr - off
+        if la > 0x10000 then
+          local it = SRP(la)
+          local sz = SRI(la + 0x10)
+          if it == paddr and sz >= 10 and sz <= 80 then
+            card_items, card_count = it, sz
+            print(string.format('[FOUND] cardDatas list: items=0x%X size=%d', it, sz))
+            break
+          end
+        end
+      end
+    end
+    if card_items then break end
+  end
+end
+ms2.destroy()
+
+if card_items == nil then
+  print('Array not found. Showing single CardData.')
+  card_items, card_count = target, 1
+end
+
+print('\n' .. string.rep('=', 78))
+print(string.format('  CARD DATA - %d entries', card_count))
+print(string.rep('=', 78))
+print(string.format('%-4s %-6s %-6s %-5s %-5s %-7s %-6s',
+  '#','ID','Cost','Count','Slot','Unlock','Upkeep'))
+print(string.rep('-', 78))
+for i = 0, card_count - 1 do
+  local ptr = (card_count == 1) and card_items or SRP(card_items + i*8)
+  if ptr == 0 then goto skip end
+  local mid = SRI(ptr + CARDOFF_MECHID)
+  local cost = SRI(ptr + CARDOFF_MONEY)
+  local cnt = SRI(ptr + 0x84)
+  local slot = SRI(ptr + 0x88)
+  local unlock = SRI(ptr + 0xA0)
+  local upkeep = SRI(ptr + 0x5C)
+  print(string.format('%-4d %-6d %-6d %-5d %-5d %-7d %-6d',
+    i, mid, cost, cnt, slot, unlock, upkeep))
+  ::skip::
+end
+print(string.rep('=', 78))
+print('[DONE]')
+
+[DISABLE]
+]]></AssemblerScript>
+    </CheatEntry>
+  </CheatEntries>
+  <UserdefinedSymbols/>
+  <LuaScript/>
+</CheatTable>
