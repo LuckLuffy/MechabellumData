@@ -164,7 +164,9 @@ let UNIT_DATA = [];
 let CHANGE_LOG = [];
 let currentSort = { field: 'cost', desc: false };
 
-// unit_data.js 中定义了 UNIT_DATA 数组，直接使用
+// 等待 DOM 就绪
+document.addEventListener('DOMContentLoaded', () => {
+if (typeof UNIT_DATA === 'undefined') { console.error('unit_data.js not loaded!'); return; }
 UNIT_DATA = UNIT_DATA.map(u => ({
   ...u,
   cost: parseFloat(u.造价)||0, hp: parseFloat(u.单体血量)||0,
@@ -176,6 +178,8 @@ UNIT_DATA = UNIT_DATA.map(u => ({
 }));
 renderTable();
 renderCards();
+
+}); // end DOMContentLoaded
 
 fetch('../cache/change_log.json')
   .then(r => r.ok ? r.json() : [])
