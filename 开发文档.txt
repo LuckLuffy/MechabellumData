@@ -448,3 +448,33 @@ CE脚本策略：
 
 Deepseek 关键经验：Anthropic 兼容端点的 thinking 模式返回 ThinkingBlock（无 .text），
 须遍历 content 块取 TextBlock，否则每次解析静默失败。
+
+======================================================================
+2026-08-04 对话记录 #12：打包 Windows exe + 弹窗填 Key
+----------------------------------------------------------------------
+需求：
+1. 打包 win64 exe 提供下载（多数人不会命令行部署）
+2. API Key 由下载者自填，不内嵌、不公开
+3. Key 通过弹窗填写，而非手动编辑 .env
+
+实现：
+- requirements.txt: requests/openpyxl/anthropic
+- config.py: 冻结感知 ROOT_DIR（PyInstaller 时用 exe 目录）
+- app.py: exe 入口（资源引导复制 frontend/基准表/.env 模板 → 启动服务器 → 自动开浏览器）
+- build_exe.py: PyInstaller onefile，打包占位 .env 模板，不读真实 key
+- gui.py: tkinter 弹窗填 Deepseek Key（显示/隐藏、跳过选项）
+- change_parser.api_key_configured(): 排除空值/占位符
+- balance_monitor: 未配置 key 时给出明确指引
+- dist/MechabellumMonitor.exe: 46MB（含 tkinter）
+
+验证：
+- 无 key 启动 → 弹窗（进程存活不崩溃）
+- 有 key 启动 → 跳过弹窗直接服务（GET / 200）
+- 26/26 测试通过
+- exe 内无真实 key（strings 验证）
+
+教训：
+- GitHub raw 下载 >25MB 二进制不可靠 → 应用 Releases 分发
+- PyInstaller --onefile 的 --add-data 资源在 _MEIPASS；首次运行需复制到 exe 旁
+- exe 就地运行会把运行数据写进自身目录（dist/ 污染），已 gitignore + 清理
+- 真实 key 全程未提交（文档仅含截断引用 sk-0d29...）
