@@ -194,10 +194,11 @@ MAIN = """<main>
           <th data-sort="name">兵种</th><th data-sort="size">体型</th>
           <th data-sort="cost" class="num">造价</th><th data-sort="hp" class="num">血量</th>
           <th data-sort="total_hp" class="num">总血量</th>
-          <th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击</th>
+          <th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击力</th>
+          <th data-sort="single_out" class="num">对单输出</th>
           <th data-sort="burst" class="num">爆发峰值</th>
           <th data-sort="splash" class="num">溅射</th><th data-sort="interval" class="num">间隔</th>
-          <th data-sort="dps" class="num">DPS</th>
+          <th data-sort="dps" class="num">对单DPS</th>
           <th data-sort="total_dps" class="num">总DPS</th>
           <th data-sort="dps_ratio" class="num">输出性价比</th>
           <th data-sort="hp_ratio" class="num">血量性价比</th>
@@ -235,26 +236,27 @@ POPUP = """<div class="overlay" id="overlay"></div>
 JS_PRE = """var RAW = __DATA_JSON__;
 
 // 统一映射函数：内嵌 RAW 与服务器 /api/data 两条路径共用，避免字段漂移
+// 新表结构：对单输出F/爆发峰值G/对单DPSH 由表格提供（含武器数）
 function makeUnit(u){
   var cost = +u["造价"]||0, hp = +u["单体血量"]||0;
-  var atk = +u["单次攻击"]||0, interval = +u["攻击间隔"]||0;
+  var atk = +u["攻击力"]||0;              // 攻击力 E
+  var single_out = +u["对单输出"]||0;     // 对单输出 F（=攻击力×武器数）
+  var burst = +u["爆发峰值"]||0;          // 爆发峰值 G（=F×数量，雷霆×3深渊×10）
+  var dps = +u["对单DPS"]||0;            // 对单DPS H（=F/间隔，深渊=G/间隔）
   var count = +u["数量"]||0;
-  var dps = interval > 0 ? atk / interval : 0;          // DPS = 攻击 / 间隔
-  var burst = atk * count;                              // 爆发峰值 = 攻击 * 数量
-  var total_dps = interval > 0 ? burst / interval : 0;  // 总DPS = 爆发峰值 / 间隔
-  var total_hp = hp * count;                            // 总血量 = 血量 * 数量
+  var total_dps = dps * count;           // 总DPS = 对单DPS × 数量
+  var total_hp = hp * count;             // 总血量 = 血量 × 数量
   return {
     name: u.name, size: u["体型"], move: u["移动类型"],
     cost: cost, hp: hp, speed: +u["移速"]||0, atk: atk,
-    splash: +u["溅射范围"]||0, interval: interval,
+    single_out: single_out, burst: burst, dps: dps,
+    splash: +u["溅射范围"]||0, interval: +u["攻击间隔"]||0,
     range: +u["射程"]||0, count: count, slots: +u["占用格子"]||0,
     unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
-    dps: dps,
-    burst: burst,
     total_dps: total_dps,
     total_hp: total_hp,
-    dps_ratio: cost > 0 ? dps / cost : 0,               // 输出性价比 = DPS / 造价
-    hp_ratio: cost > 0 ? hp / cost : 0,                 // 血量性价比 = 血量 / 造价
+    dps_ratio: cost > 0 ? dps / cost : 0,   // 输出性价比 = 对单DPS / 造价
+    hp_ratio: cost > 0 ? hp / cost : 0,     // 血量性价比 = 血量 / 造价
     _raw: u
   };
 }
@@ -298,6 +300,7 @@ function renderTable(){
     html+='<td class="num hp">'+fmt(u.total_hp)+'</td>';
     html+='<td class="num spd">'+fmt(u.speed)+'</td>';
     html+='<td class="num atk">'+fmt(u.atk)+'</td>';
+    html+='<td class="num atk">'+fmt(u.single_out)+'</td>';
     html+='<td class="num atk">'+fmt(u.burst)+'</td>';
     html+='<td class="num">'+fmt(u.splash)+'</td>';
     html+='<td class="num">'+fmt(u.interval)+'</td>';
@@ -339,9 +342,9 @@ function renderCards(){
     html+='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+aaTag(u.name)+'</h3>';
     html+='<div class="card-row"><span class="card-label">造价</span><span class="card-value cost">'+fmt(u.cost)+'</span></div>';
     html+='<div class="card-row"><span class="card-label">血量</span><span class="card-value hp">'+fmt(u.hp)+'</span></div>';
-    html+='<div class="card-row"><span class="card-label">攻击</span><span class="card-value atk">'+fmt(u.atk)+'</span></div>';
-    html+='<div class="card-row"><span class="card-label">移速</span><span class="card-value spd">'+u.speed+'</span></div>';
-    html+='<div class="card-row"><span class="card-label">射程</span><span class="card-value">'+fmt(u.range)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">攻击力</span><span class="card-value atk">'+fmt(u.atk)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">对单DPS</span><span class="card-value atk">'+fmt2(u.dps)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">总DPS</span><span class="card-value">'+fmt2(u.total_dps)+'</span></div>';
     html+='<div class="card-row"><span class="card-label">数量 × 格子</span><span class="card-value">'+fmt(u.count)+' × '+fmt(u.slots)+'</span></div>';
     html+='</div>';
   }
@@ -352,19 +355,37 @@ function renderCards(){
 function showDetail(name){
   var u=UNITS.find(function(x){return x.name===name}); if(!u) return;
   var r=u._raw;
-  var fields=[
-    ['造价','cost'],['单体血量','hp'],['移速','spd'],['单次攻击','atk'],
-    ['溅射范围',''],['攻击间隔',''],['射程',''],['对空',''],
-    ['数量',''],['占用格子',''],['解锁费用',''],['伤害血量',''],
-    ['升级经验要求',''],['提供经验','']
+  // 用映射后的 u 取计算值，用 _raw 取原始列
+  var rows=[
+    ['造价', u.cost, 'cost'],
+    ['单体血量', u.hp, 'hp'],
+    ['总血量', u.total_hp, ''],
+    ['移速', u.speed, 'spd'],
+    ['攻击力', u.atk, 'atk'],
+    ['对单输出', u.single_out, ''],
+    ['爆发峰值', u.burst, ''],
+    ['对单DPS', u.dps, ''],
+    ['总DPS', u.total_dps, ''],
+    ['输出性价比', u.dps_ratio, ''],
+    ['血量性价比', u.hp_ratio, ''],
+    ['溅射范围', u.splash, ''],
+    ['攻击间隔', u.interval, ''],
+    ['射程', u.range, ''],
+    ['对空', r['对空'], ''],
+    ['数量', u.count, ''],
+    ['占用格子', u.slots, ''],
+    ['解锁费用', u.unlock, ''],
+    ['伤害血量', r['伤害血量'], ''],
+    ['升级经验要求', r['升级经验要求'], ''],
+    ['提供经验', r['提供经验'], '']
   ];
   var h='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+aaTag(u.name)+'</h3>';
   h+='<div class="popup-sub">UNIT #'+u._raw.id+' · '+(u.move==='飞行'?'AIR':'GROUND')+' · '+u.size+'</div>';
   h+='<div class="stat-grid">';
-  for(var i=0;i<fields.length;i++){
-    var f=fields[i][0], c=fields[i][1];
-    var v=(r[f]!==undefined && r[f]!==null)?r[f]:'-';
-    h+='<div class="stat-cell"><span class="k">'+f+'</span><span class="v '+c+'">'+v+'</span></div>';
+  for(var i=0;i<rows.length;i++){
+    var label=rows[i][0], val=rows[i][1], cls=rows[i][2];
+    var v=(val!==undefined && val!==null)?val:'-';
+    h+='<div class="stat-cell"><span class="k">'+label+'</span><span class="v '+cls+'">'+v+'</span></div>';
   }
   h+='</div>';
   document.getElementById('detailContent').innerHTML=h;

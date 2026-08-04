@@ -35,16 +35,18 @@ def _resolve_newest_sheet() -> str:
     return candidates[-1]
 
 
-def load_workbook(path: str = None) -> tuple:
+def load_workbook(path: str = None, data_only: bool = False) -> tuple:
     """加载 Excel 工作簿，返回 (workbook, sheet, row_map, col_map)
 
     path 为 None 时自动解析 outputs/ 下最新版本（实现跨版本变更累积），
     否则使用显式指定的文件。
+    data_only=True 时读取公式的缓存计算结果（供 convert_to_json 导出）。
+    注意：编辑/保存（balance_monitor）必须 data_only=False，否则公式会丢。
     row_map: {单位名: 行号}
     col_map: {列名: 列号}
     """
     path = path or _resolve_newest_sheet()
-    wb = openpyxl.load_workbook(path)
+    wb = openpyxl.load_workbook(path, data_only=data_only)
     ws = wb.active
 
     # 建立列名→列号映射（第一行是表头）

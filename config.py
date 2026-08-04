@@ -63,12 +63,16 @@ LAST_CHECK_FILE = os.path.join(CACHE_DIR, "last_check.json")
 CHANGE_LOG_FILE = os.path.join(CACHE_DIR, "change_log.json")
 
 # 列名映射（Excel列名 → 内部字段名）
+# 2026-08 新表结构：攻击力/对单输出/爆发峰值/对单DPS
 COLUMN_MAP = {
     "兵种名称": "name",
     "造价": "cost",
     "单体血量": "hp",
     "移速": "speed",
-    "单次攻击": "atk",
+    "攻击力": "atk",
+    "对单输出": "single_out",
+    "爆发峰值": "burst",
+    "对单DPS": "dps",
     "溅射范围": "splash",
     "攻击间隔": "interval",
     "射程": "range",
