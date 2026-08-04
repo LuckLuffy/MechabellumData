@@ -6,11 +6,11 @@
 
 指导老师：[**@流影**](https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click)
 
-## 下载使用（免命令行）
+## 下载使用
 
-**Windows x64 免安装版 · 单文件 · 约 30MB**
+**Windows x64 免安装版**
 
-📥 下载渠道（任选其一）：
+📥 下载渠道：
 
 | 渠道 | 说明 |
 |------|------|
