@@ -82,6 +82,10 @@ main{max-width:1440px;margin:0 auto;padding:16px 20px 60px}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:860px}
 thead th{position:sticky;top:0;z-index:5;background:var(--surface2);padding:10px 10px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;font:600 12px var(--sans);color:var(--dim);letter-spacing:.5px}
 thead th:hover{color:var(--text)}
+/* 冻结第一列（兵种名）：横向滚动时保持可见 */
+thead th:first-child{position:sticky;left:0;z-index:6;border-right:1px solid var(--border-bright)}
+tbody td:first-child{position:sticky;left:0;z-index:4;background:var(--surface);border-right:1px solid var(--border-bright)}
+tbody tr:hover td:first-child{background:var(--row-hover)}
 thead th.sorted{color:var(--accent)}
 thead th.sorted::after{content:' ▲';font-size:9px;color:var(--accent)}
 thead th.sorted.desc::after{content:' ▼'}
