@@ -3,101 +3,210 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mechabellum 兵种数据 | 钢铁指挥官</title>
+<title>Mechabellum 兵种数据 · 钢铁指挥官</title>
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--text-dim:#8b949e;--accent:#58a6ff;--hp:#f85149;--atk:#ffa657;--spd:#7ee787;--giant:#d2a8ff;--air:#79c0ff;--small:#8b949e;--row-hover:#1c2128}
+/* ===== 设计令牌 ===== */
+:root{
+  --bg:#0b0e13;            /* 深钢蓝黑 */
+  --surface:#12161d;       /* 面板 */
+  --surface2:#1a2029;      /* 面板抬升 */
+  --border:#262d38;        /* 分隔线 */
+  --border-bright:#333c4a;
+  --accent:#ffb454;        /* 琥珀 · 准星 */
+  --accent-2:#4fc3f7;      /* 青 · 数据 */
+  --text:#e2e6ec;
+  --dim:#8a94a0;
+  --hp:#ff5f5f;
+  --atk:#ffb454;
+  --spd:#4fc3f7;
+  --giant:#d2a8ff;
+  --air:#79c0ff;
+  --small:#8a94a0;
+  --row-hover:#161c26;
+  --mono:'Cascadia Code','Consolas',ui-monospace,monospace;
+  --sans:'Segoe UI','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;
+  --display:'Bahnschrift','Segoe UI',sans-serif;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.container{max-width:1400px;margin:0 auto;padding:16px}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 0;position:sticky;top:0;z-index:10}
-header .container{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-h1{font-size:20px}h1 span{color:var(--accent)}
-.tabs{display:flex;gap:4px;margin-left:auto}
-.tab{padding:6px 16px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);color:var(--text-dim);font-size:13px}
-.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.tab:hover:not(.active){color:var(--text)}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;align-items:center}
-.filters input,.filters select{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text);font-size:13px}
-.filters input{flex:1;min-width:200px;max-width:320px}
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
-.badge.giant{background:rgba(210,168,255,.15);color:var(--giant)}
-.badge.air{background:rgba(121,192,255,.15);color:var(--air)}
-.badge.ground{background:rgba(139,148,158,.15);color:var(--small)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{position:sticky;top:56px;background:var(--surface);padding:10px 8px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
-th:hover{color:var(--accent)}
-th.sorted::after{content:' ^';font-size:10px}
-th.sorted.desc::after{content:' v'}
-td{padding:8px;border-bottom:1px solid var(--border)}
-tr:hover td{background:var(--row-hover)}
-.num{text-align:right;font-variant-numeric:tabular-nums}
-.hp-val{color:var(--hp);font-weight:600}
-.atk-val{color:var(--atk);font-weight:600}
-.spd-val{color:var(--spd);font-weight:600}
-.cost-val{color:var(--accent)}
-.unit-name{font-weight:600;display:flex;align-items:center;gap:6px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.card h3{margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.card-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(48,54,61,.5)}
+html{scrollbar-color:var(--border) var(--bg)}
+body{background:var(--bg);color:var(--text);font:14px/1.6 var(--sans);min-height:100vh}
+
+/* ===== 顶部工具条（sticky） ===== */
+.toolbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--border)}
+.toolbar .accent-line{height:2px;background:linear-gradient(90deg,var(--accent),transparent 70%)}
+.bar{max-width:1440px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-mark{width:30px;height:30px;border:1px solid var(--accent);border-radius:4px;display:grid;place-items:center;color:var(--accent);font-size:13px;flex-shrink:0;background:rgba(255,180,84,.06)}
+.brand h1{font:700 18px/1.2 var(--display);letter-spacing:.5px;white-space:nowrap}
+.brand h1 em{font-style:normal;color:var(--accent)}
+.brand .sub{font-size:11px;color:var(--dim);letter-spacing:2px;text-transform:uppercase}
+.tabs{display:flex;gap:2px;margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px}
+.tab{padding:5px 16px;border-radius:4px;cursor:pointer;color:var(--dim);font-size:13px;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--accent);color:#1a1206;font-weight:600}
+
+.filters{max-width:1440px;margin:0 auto;padding:0 20px 10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filters input,.filters select{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 12px;color:var(--text);font:13px var(--sans);outline:none;transition:border-color .15s}
+.filters input:focus,.filters select:focus{border-color:var(--accent)}
+.filters input{flex:1;min-width:180px;max-width:300px}
+.readout{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font:12px var(--mono);color:var(--dim);letter-spacing:1px}
+.readout b{color:var(--accent);font-size:15px}
+.check-btn{background:var(--accent);color:#1a1206;border:none;border-radius:5px;padding:6px 14px;font:600 13px var(--sans);cursor:pointer;transition:filter .15s}
+.check-btn:hover{filter:brightness(1.1)}
+.check-btn:disabled{opacity:.5;cursor:wait}
+.statusbar{max-width:1440px;margin:0 auto;padding:0 20px 8px;font:11px var(--mono);color:var(--dim);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.statusbar .ok{color:var(--spd)}.statusbar .warn{color:var(--atk)}.statusbar .err{color:var(--hp)}
+
+/* ===== 主内容 ===== */
+main{max-width:1440px;margin:0 auto;padding:16px 20px 60px}
+
+/* ===== 数据表 ===== */
+/* 表格自身体积内滚动：表头吸在滚动容器顶部(top:0)，
+   不会与上方 sticky 工具栏互相重叠 */
+.table-wrap{overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+/* border-collapse:separate 是 th sticky 生效的前提（collapse 下 Chrome 会失效） */
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:860px}
+thead th{position:sticky;top:0;z-index:5;background:var(--surface2);padding:10px 10px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;font:600 12px var(--sans);color:var(--dim);letter-spacing:.5px}
+thead th:hover{color:var(--text)}
+thead th.sorted{color:var(--accent)}
+thead th.sorted::after{content:' ▲';font-size:9px;color:var(--accent)}
+thead th.sorted.desc::after{content:' ▼'}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--row-hover)}
+tbody tr:last-child td{border-bottom:none}
+.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.name-cell{font-weight:600;display:flex;align-items:center;gap:8px}
+.tag{display:inline-flex;align-items:center;padding:1px 7px;border-radius:3px;font:600 11px var(--sans);letter-spacing:.5px}
+.tag.giant{background:rgba(210,168,255,.12);color:var(--giant);border:1px solid rgba(210,168,255,.3)}
+.tag.medium{background:rgba(79,195,247,.10);color:var(--air);border:1px solid rgba(79,195,247,.3)}
+.tag.small{background:rgba(138,148,160,.10);color:var(--small);border:1px solid rgba(138,148,160,.25)}
+.tag.fly{background:rgba(121,192,255,.08);color:var(--air);border:1px solid rgba(121,192,255,.2)}
+.cost{color:var(--accent);font-weight:600}
+.hp{color:var(--hp);font-weight:600}
+.atk{color:var(--atk);font-weight:600}
+.spd{color:var(--spd);font-weight:600}
+
+/* ===== 卡片视图 ===== */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:border-color .15s,transform .1s}
+.card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.card h3{margin-bottom:10px;display:flex;align-items:center;gap:8px;font:600 15px var(--sans)}
+.card-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(38,45,56,.6);font-size:13px}
 .card-row:last-child{border:none}
-.card-label{color:var(--text-dim)}.card-value{font-weight:600}
-.popup{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;z-index:100;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.popup.show{display:block}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+.card-label{color:var(--dim)}.card-value{font-family:var(--mono);font-weight:600}
+
+/* ===== 详情弹窗 ===== */
+.overlay{display:none;position:fixed;inset:0;background:rgba(5,7,10,.7);z-index:90;backdrop-filter:blur(2px)}
 .overlay.show{display:block}
-.close-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer}
-@media(max-width:768px){.card-grid{grid-template-columns:1fr}header .container{flex-direction:column}.tabs{margin-left:0}}
+.popup{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border-bright);border-radius:10px;padding:24px;z-index:100;max-width:460px;width:92%;max-height:82vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.6)}
+.popup.show{display:block}
+.close-btn{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1}
+.close-btn:hover{color:var(--text)}
+.popup h3{font:700 18px var(--display);display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.popup .popup-sub{font:11px var(--mono);color:var(--dim);letter-spacing:1px;margin-bottom:14px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.stat-cell{background:var(--surface2);padding:9px 12px;display:flex;justify-content:space-between;align-items:center}
+.stat-cell .k{font-size:12px;color:var(--dim)}
+.stat-cell .v{font-family:var(--mono);font-weight:600}
+
+/* ===== 关于 ===== */
+.about-card{max-width:560px;margin:24px auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px}
+.about-card h3{font:700 20px var(--display);margin-bottom:8px}
+.about-card p{color:var(--dim);margin:8px 0}
+.about-card a{color:var(--accent)}
+
+/* ===== 响应式 ===== */
+@media(max-width:768px){
+  .bar{flex-direction:column;align-items:stretch;gap:10px;padding:10px 14px}
+  .tabs{margin-left:0;justify-content:center}
+  .brand h1{white-space:normal}
+  .filters{padding:0 14px 10px}
+  .readout{margin-left:0}
+  main{padding:14px}
+  .stat-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
 </style>
 </head>
 <body>
-<header><div class="container">
-<h1><span>Mechabellum</span> 兵种数据表</h1>
-<div class="tabs">
-<div class="tab active" onclick="switchTab('table')">数据表</div>
-<div class="tab" onclick="switchTab('cards')">卡片</div>
-<div class="tab" onclick="switchTab('about')">关于</div>
+
+<header class="toolbar">
+  <div class="accent-line"></div>
+  <div class="bar">
+    <div class="brand">
+      <div class="brand-mark">&#9670;</div>
+      <div>
+        <h1><em>MECHABELLUM</em> 兵种数据</h1>
+        <div class="sub">STEEL COMMANDER · UNIT DATA</div>
+      </div>
+    </div>
+    <nav class="tabs">
+      <div class="tab active" data-tab="table">数据表</div>
+      <div class="tab" data-tab="cards">卡片</div>
+      <div class="tab" data-tab="about">关于</div>
+    </nav>
+    <button id="checkBtn" class="check-btn">&#9881; 检查更新</button>
+  </div>
+  <div class="filters" id="filters-table">
+    <input type="text" id="search" placeholder="搜索兵种..." oninput="renderTable()">
+    <select id="typeFilter" onchange="renderTable()">
+      <option value="">全部体型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
+    </select>
+    <select id="moveFilter" onchange="renderTable()">
+      <option value="">全部机动</option><option value="飞行">飞行</option><option value="地面">地面</option>
+    </select>
+    <span class="readout" id="countDisplay"></span>
+  </div>
+  <div class="filters" id="filters-cards" style="display:none">
+    <input type="text" id="cardSearch" placeholder="搜索兵种..." oninput="renderCards()">
+    <select id="cardTypeFilter" onchange="renderCards()">
+      <option value="">全部体型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
+    </select>
+  </div>
+  <div class="statusbar" id="statusBar">初始化中…</div>
+</header>
+
+<main>
+  <div id="tab-table">
+    <div class="table-wrap">
+      <table id="unitTable">
+        <thead><tr>
+          <th data-sort="name">兵种</th><th data-sort="size">体型</th>
+          <th data-sort="cost" class="num">造价</th><th data-sort="hp" class="num">血量</th>
+          <th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击</th>
+          <th data-sort="splash" class="num">溅射</th><th data-sort="interval" class="num">间隔</th>
+          <th data-sort="range" class="num">射程</th><th data-sort="count" class="num">数量</th>
+          <th data-sort="slots" class="num">格子</th><th data-sort="unlock" class="num">解锁</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-cards" style="display:none">
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+
+  <div id="tab-about" style="display:none">
+    <div class="about-card">
+      <h3>钢铁指挥官 · 兵种数据</h3>
+      <p>数据来源：游戏内手动采集（2026-07-29 · v1.11.1.1.2207）</p>
+      <p>自动监控：Steam RSS → 平衡性检测 → Claude 解析 → 数据表更新</p>
+      <p>技术栈：Python + openpyxl + Anthropic Claude API + 纯静态前端</p>
+      <p><a href="https://github.com/LuckLuffy/MechabellumData">GitHub 仓库</a></p>
+    </div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<div class="popup" id="detailPanel">
+  <button class="close-btn" id="closeBtn">&times;</button>
+  <div id="detailContent"></div>
 </div>
-</div></header>
-<div class="container">
-<div id="tab-table">
-<div class="filters">
-<input type="text" id="search" placeholder="搜索..." oninput="renderTable()">
-<select id="typeFilter" onchange="renderTable()"><option value="">全部体型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option></select>
-<select id="moveFilter" onchange="renderTable()"><option value="">全部移动</option><option value="飞行">飞行</option><option value="地面">地面</option></select>
-<span style="color:var(--text-dim);font-size:12px" id="countDisplay"></span>
-</div>
-<div style="overflow-x:auto">
-<table id="unitTable">
-<thead><tr>
-<th data-sort="name">兵种</th><th data-sort="size">体型</th>
-<th data-sort="cost" class="num">造价</th><th data-sort="hp" class="num">血量</th>
-<th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击</th>
-<th data-sort="splash" class="num">溅射</th><th data-sort="interval" class="num">间隔</th>
-<th data-sort="range" class="num">射程</th><th data-sort="count" class="num">数量</th>
-<th data-sort="slots" class="num">格子</th><th data-sort="unlock" class="num">解锁</th>
-</tr></thead>
-<tbody></tbody>
-</table>
-</div>
-</div>
-<div id="tab-cards" style="display:none">
-<div class="filters">
-<input type="text" id="cardSearch" placeholder="搜索..." oninput="renderCards()">
-<select id="cardTypeFilter" onchange="renderCards()"><option value="">全部</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option></select>
-</div>
-<div class="card-grid" id="cardGrid"></div>
-</div>
-<div id="tab-about" style="display:none">
-<div class="card" style="max-width:600px;margin:20px auto">
-<h3>Mechabellum 钢铁指挥官 - 兵种数据</h3>
-<p style="color:var(--text-dim);margin:12px 0">数据来源：游戏内手动采集 (2026-07-29, v1.11.1.1.2207)<br>自动监控：Steam RSS - 平衡性检测 - 自动更新<br>技术栈：Python + openpyxl + Anthropic Claude API</p>
-<p><a href="https://github.com/LuckLuffy/MechabellumData" style="color:var(--accent)">GitHub</a></p>
-</div>
-</div>
-</div>
-<div class="overlay" id="overlay" onclick="closeDetail()"></div>
-<div class="popup" id="detailPanel"><button class="close-btn" onclick="closeDetail()">&times;</button><div id="detailContent"></div></div>
+
 <script>
 var RAW = [{"name": "防御墙", "id": 1, "兵种名称": "防御墙", "造价": 50, "单体血量": 1112, "移速": 0, "单次攻击": 0, "溅射范围": 0, "攻击间隔": 0, "射程": 0, "对空": 0, "数量": 5, "占用格子": 6, "解锁费用": 0, "伤害血量": 0, "升级经验要求": 0, "提供经验": "5*6", "体型": "小型", "移动类型": "地面"}, {"name": "速射炮", "id": 2, "兵种名称": "速射炮", "造价": 100, "单体血量": 3650, "移速": 0, "单次攻击": 82, "溅射范围": 10, "攻击间隔": 0.3, "射程": 115, "对空": 0, "数量": 1, "占用格子": 4, "解锁费用": 0, "伤害血量": 0, "升级经验要求": 0, "提供经验": 60, "体型": "小型", "移动类型": "地面"}, {"name": "弧光", "id": 3, "兵种名称": "弧光", "造价": 100, "单体血量": 4813, "移速": 7, "单次攻击": 365, "溅射范围": 7, "攻击间隔": 0.9, "射程": 95, "对空": 0.5, "数量": 1, "占用格子": 4, "解锁费用": 0, "伤害血量": 100, "升级经验要求": 750, "提供经验": 200, "体型": "小型", "移动类型": "地面"}, {"name": "猎犬", "id": 4, "兵种名称": "猎犬", "造价": 100, "单体血量": 879, "移速": 10, "单次攻击": 246, "溅射范围": 6, "攻击间隔": 2.4, "射程": 70, "对空": 0, "数量": 5, "占用格子": 8, "解锁费用": 0, "伤害血量": "5*20", "升级经验要求": 750, "提供经验": 200, "体型": "小型", "移动类型": "地面"}, {"name": "反装甲炮", "id": 5, "兵种名称": "反装甲炮", "造价": 100, "单体血量": 5028, "移速": 0, "单次攻击": 2748, "溅射范围": 5, "攻击间隔": 2.5, "射程": 125, "对空": 0, "数量": 1, "占用格子": 4, "解锁费用": 0, "伤害血量": 0, "升级经验要求": 0, "提供经验": 60, "体型": "小型", "移动类型": "地面"}, {"name": "长弓", "id": 6, "兵种名称": "长弓", "造价": 100, "单体血量": 1622, "移速": 8, "单次攻击": 2329, "溅射范围": 0, "攻击间隔": 3.1, "射程": 140, "对空": 1, "数量": 1, "占用格子": 4, "解锁费用": 0, "伤害血量": 100, "升级经验要求": 650, "提供经验": 200, "体型": "小型", "移动类型": "地面"}, {"name": "磁暴", "id": 7, "兵种名称": "磁暴", "造价": 100, "单体血量": 7425, "移速": 8, "单次攻击": 1309, "溅射范围": 0, "攻击间隔": 1.5, "射程": 85, "对空": 0, "数量": 1, "占用格子": 4, "解锁费用": 0, "伤害血量": 100, "升级经验要求": 750, "提供经验": 200, "体型": "小型", "移动类型": "地面"}, {"name": "魔眼", "id": 8, "兵种名称": "魔眼", "造价": 100, "单体血量": 1522, "移速": 8, "单次攻击": 995, "溅射范围": 0, "攻击间隔": 3.3, "射程": 100, "对空": 0.5, "数量": 3, "占用格子": 8, "解锁费用": 0, "伤害血量": "3*33", "升级经验要求": 650, "提供经验": 198, "体型": "小型", "移动类型": "地面"}, {"name": "爬虫", "id": 9, "兵种名称": "爬虫", "造价": 100, "单体血量": 263, "移速": 16, "单次攻击": 79, "溅射范围": 0, "攻击间隔": 0.6, "射程": 0, "对空": 0, "数量": 24, "占用格子": 10, "解锁费用": 0, "伤害血量": "24*4", "升级经验要求": 450, "提供经验": 192, "体型": "小型", "移动类型": "地面"}, {"name": "尖牙", "id": 10, "兵种名称": "尖牙", "造价": 100, "单体血量": 117, "移速": 6, "单次攻击": 63, "溅射范围": 0, "攻击间隔": 1.5, "射程": 75, "对空": 1, "数量": 18, "占用格子": 10, "解锁费用": 0, "伤害血量": "18*6", "升级经验要求": 600, "提供经验": 216, "体型": "小型", "移动类型": "地面"}, {"name": "火獾", "id": 11, "兵种名称": "火獾", "造价": 200, "单体血量": 4222, "移速": 9, "单次攻击": 27, "溅射范围": 7, "攻击间隔": 0.1, "射程": 75, "对空": 0, "数量": 3, "占用格子": 10, "解锁费用": 0, "伤害血量": "3*67", "升级经验要求": 1400, "提供经验": 402, "体型": "小型", "移动类型": "地面"}, {"name": "犀牛", "id": 12, "兵种名称": "犀牛", "造价": 200, "单体血量": 19297, "移速": 16, "单次攻击": 3560, "溅射范围": 6, "攻击间隔": 0.9, "射程": 0, "对空": 0, "数量": 1, "占用格子": 9, "解锁费用": 50, "伤害血量": 200, "升级经验要求": 1150, "提供经验": 400, "体型": "中型", "移动类型": "地面"}, {"name": "暴雨", "id": 13, "兵种名称": "暴雨", "造价": 200, "单体血量": 1149, "移速": 6, "单次攻击": 3088, "溅射范围": 5.5, "攻击间隔": 6.6, "射程": 180, "对空": 0, "数量": 4, "占用格子": 10, "解锁费用": 50, "伤害血量": "50*4", "升级经验要求": 1100, "提供经验": 400, "体型": "小型", "移动类型": "地面"}, {"name": "剑齿虎", "id": 14, "兵种名称": "剑齿虎", "造价": 200, "单体血量": 14886, "移速": 8, "单次攻击": 6881, "溅射范围": 5, "攻击间隔": 3.2, "射程": 95, "对空": 0, "数量": 1, "占用格子": 9, "解锁费用": 0, "伤害血量": 200, "升级经验要求": 1300, "提供经验": 400, "体型": "中型", "移动类型": "地面"}, {"name": "铁锤", "id": 15, "兵种名称": "铁锤", "造价": 200, "单体血量": 3478, "移速": 7, "单次攻击": 608, "溅射范围": 5, "攻击间隔": 4.5, "射程": 95, "对空": 0, "数量": 5, "占用格子": 10, "解锁费用": 0, "伤害血量": "5*40", "升级经验要求": 1300, "提供经验": 400, "体型": "小型", "移动类型": "地面"}, {"name": "狼蛛", "id": 16, "兵种名称": "狼蛛", "造价": 200, "单体血量": 14773, "移速": 8, "单次攻击": 496, "溅射范围": 5, "攻击间隔": 0.6, "射程": 80, "对空": 0.5, "数量": 1, "占用格子": 9, "解锁费用": 0, "伤害血量": 200, "升级经验要求": 1500, "提供经验": 400, "体型": "中型", "移动类型": "地面"}, {"name": "鬼鳐", "id": 17, "兵种名称": "鬼鳐", "造价": 200, "单体血量": 3412, "移速": 16, "单次攻击": 2174, "溅射范围": 3, "攻击间隔": 3, "射程": 65, "对空": 1, "数量": 3, "占用格子": 10, "解锁费用": 50, "伤害血量": "3*67", "升级经验要求": 1000, "提供经验": 408, "体型": "小型", "移动类型": "飞行"}, {"name": "凤凰", "id": 18, "兵种名称": "凤凰", "造价": 200, "单体血量": 1491, "移速": 16, "单次攻击": 2814, "溅射范围": 0, "攻击间隔": 3.4, "射程": 120, "对空": 1, "数量": 2, "占用格子": 8, "解锁费用": 50, "伤害血量": "100*2", "升级经验要求": 1300, "提供经验": 400, "体型": "小型", "移动类型": "飞行"}, {"name": "钢球", "id": 19, "兵种名称": "钢球", "造价": 200, "单体血量": 4571, "移速": 16, "单次攻击": 2605, "溅射范围": 0, "攻击间隔": 0.2, "射程": 45, "对空": 0, "数量": 4, "占用格子": 10, "解锁费用": 0, "伤害血量": "5*40", "升级经验要求": 1000, "提供经验": 400, "体型": "小型", "移动类型": "地面"}, {"name": "骇客", "id": 20, "兵种名称": "骇客", "造价": 200, "单体血量": 3249, "移速": 8, "单次攻击": 600, "溅射范围": 0, "攻击间隔": 0.3, "射程": 110, "对空": 0, "数量": 1, "占用格子": 9, "解锁费用": 100, "伤害血量": 200, "升级经验要求": 560, "提供经验": 400, "体型": "小型", "移动类型": "地面"}, {"name": "兵峰", "id": 21, "兵种名称": "兵峰", "造价": 200, "单体血量": 311, "移速": 16, "单次攻击": 202, "溅射范围": 0, "攻击间隔": 1.4, "射程": 50, "对空": 1, "数量": 12, "占用格子": 10, "解锁费用": 50, "伤害血量": "12*17", "升级经验要求": 900, "提供经验": 408, "体型": "小型", "移动类型": "飞行"}, {"name": "野马", "id": 22, "兵种名称": "野马", "造价": 200, "单体血量": 343, "移速": 16, "单次攻击": 36, "溅射范围": 0, "攻击间隔": 0.4, "射程": 95, "对空": 1, "数量": 12, "占用格子": 10, "解锁费用": 0, "伤害血量": "12*17", "升级经验要求": 1200, "提供经验": 408, "体型": "小型", "移动类型": "飞行"}, {"name": "狂蝎", "id": 23, "兵种名称": "狂蝎", "造价": 300, "单体血量": 18632, "移速": 7, "单次攻击": 10650, "溅射范围": 15, "攻击间隔": 4.5, "射程": 100, "对空": 0, "数量": 1, "占用格子": 9, "解锁费用": 50, "伤害血量": 250, "升级经验要求": 1500, "提供经验": 600, "体型": "中型", "移动类型": "地面"}, {"name": "先知", "id": 24, "兵种名称": "先知", "造价": 300, "单体血量": 11991, "移速": 16, "单次攻击": 2696, "溅射范围": 8, "攻击间隔": 2, "射程": 125, "对空": 1, "数量": 1, "占用格子": 9, "解锁费用": 50, "伤害血量": 250, "升级经验要求": 1800, "提供经验": 400, "体型": "中型", "移动类型": "飞行"}, {"name": "恶灵", "id": 25, "兵种名称": "恶灵", "造价": 300, "单体血量": 14115, "移速": 10, "单次攻击": 1524, "溅射范围": 8, "攻击间隔": 2, "射程": 60, "对空": 1, "数量": 1, "占用格子": 9, "解锁费用": 50, "伤害血量": 250, "升级经验要求": 2250, "提供经验": 600, "体型": "中型", "移动类型": "飞行"}, {"name": "台风", "id": 26, "兵种名称": "台风", "造价": 300, "单体血量": 9529, "移速": 9, "单次攻击": 88, "溅射范围": 5, "攻击间隔": 0.2, "射程": 100, "对空": 1, "数量": 2, "占用格子": 8, "解锁费用": 50, "伤害血量": "125*2", "升级经验要求": 1950, "提供经验": 400, "体型": "中型", "移动类型": "飞行"}, {"name": "火神", "id": 27, "兵种名称": "火神", "造价": 400, "单体血量": 30279, "移速": 6, "单次攻击": 75, "溅射范围": 15, "攻击间隔": 0.1, "射程": 95, "对空": 0, "数量": 1, "占用格子": 16, "解锁费用": 200, "伤害血量": 350, "升级经验要求": 2200, "提供经验": 800, "体型": "巨型", "移动类型": "地面"}, {"name": "沙虫", "id": 28, "兵种名称": "沙虫", "造价": 400, "单体血量": 48645, "移速": 16, "单次攻击": 9726, "溅射范围": 12, "攻击间隔": 2.5, "射程": 0, "对空": 0.5, "数量": 1, "占用格子": 16, "解锁费用": 200, "伤害血量": "350+12", "升级经验要求": 2000, "提供经验": 800, "体型": "巨型", "移动类型": "地面"}, {"name": "堡垒", "id": 29, "兵种名称": "堡垒", "造价": 400, "单体血量": 43938, "移速": 6, "单次攻击": 6524, "溅射范围": 5, "攻击间隔": 1.8, "射程": 100, "对空": 0, "数量": 1, "占用格子": 16, "解锁费用": 200, "伤害血量": 350, "升级经验要求": 1600, "提供经验": 800, "体型": "巨型", "移动类型": "地面"}, {"name": "熔点", "id": 30, "兵种名称": "熔点", "造价": 400, "单体血量": 30907, "移速": 6, "单次攻击": 7952, "溅射范围": 3, "攻击间隔": 0.2, "射程": 115, "对空": 1, "数量": 1, "占用格子": 16, "解锁费用": 200, "伤害血量": 350, "升级经验要求": 1400, "提供经验": 800, "体型": "巨型", "移动类型": "地面"}, {"name": "雷霆", "id": 31, "兵种名称": "雷霆", "造价": 400, "单体血量": 16065, "移速": 10, "单次攻击": 5027, "溅射范围": 0, "攻击间隔": 4.6, "射程": 110, "对空": 1, "数量": 1, "占用格子": 16, "解锁费用": 200, "伤害血量": 350, "升级经验要求": 2400, "提供经验": 800, "体型": "巨型", "移动类型": "飞行"}, {"name": "霸主", "id": 32, "兵种名称": "霸主", "造价": 500, "单体血量": 21339, "移速": 10, "单次攻击": 18968, "溅射范围": 7, "攻击间隔": 4.6, "射程": 120, "对空": 1, "数量": 1, "占用格子": 25, "解锁费用": 200, "伤害血量": 400, "升级经验要求": 1750, "提供经验": 1000, "体型": "巨型", "移动类型": "飞行"}, {"name": "深渊", "id": 33, "兵种名称": "深渊", "造价": 800, "单体血量": 66955, "移速": 10, "单次攻击": 3859, "溅射范围": 10, "攻击间隔": 4, "射程": 100, "对空": 1, "数量": 1, "占用格子": 49, "解锁费用": 350, "伤害血量": 500, "升级经验要求": 4800, "提供经验": 1600, "体型": "巨型", "移动类型": "飞行"}, {"name": "泰山", "id": 34, "兵种名称": "泰山", "造价": 800, "单体血量": 136657, "移速": 6, "单次攻击": 23596, "溅射范围": 5, "攻击间隔": 2, "射程": 100, "对空": 0.5, "数量": 1, "占用格子": 49, "解锁费用": 350, "伤害血量": 500, "升级经验要求": 3200, "提供经验": 1600, "体型": "巨型", "移动类型": "地面"}, {"name": "战争工厂", "id": 35, "兵种名称": "战争工厂", "造价": 800, "单体血量": 113593, "移速": 6, "单次攻击": 15040, "溅射范围": 4.5, "攻击间隔": 1.8, "射程": 100, "对空": 0, "数量": 1, "占用格子": 49, "解锁费用": 350, "伤害血量": 500, "升级经验要求": 3200, "提供经验": 1600, "体型": "巨型", "移动类型": "地面"}, {"name": "丧钟", "id": 36, "兵种名称": "丧钟", "造价": 800, "单体血量": 125512, "移速": 6, "单次攻击": 9798, "溅射范围": 3, "攻击间隔": 0.2, "射程": 115, "对空": 1, "数量": 1, "占用格子": 49, "解锁费用": "？", "伤害血量": 500, "升级经验要求": 3200, "提供经验": 1600, "体型": "巨型", "移动类型": "地面"}];
 
@@ -107,15 +216,16 @@ var UNITS = RAW.map(function(u){ return {
   atk: +u["单次攻击"]||0, splash: +u["溅射范围"]||0, interval: +u["攻击间隔"]||0,
   range: +u["射程"]||0, count: +u["数量"]||0, slots: +u["占用格子"]||0,
   unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
-  anti_air: u["对空"], dmg_hp: u["伤害血量"], exp: u["升级经验要求"], exp_out: u["提供经验"],
   _raw: u
 }});
 
 var sortField = 'cost', sortDesc = false;
 
 function fmt(v){ return v==null||isNaN(v)?'-':Number.isInteger(v)?v.toLocaleString():v }
-function tag(t,c){ return '<span class="badge '+c+'">'+t+'</span>' }
+function sizeTag(s){ return '<span class="tag '+(s==='巨型'?'giant':s==='中型'?'medium':'small')+'">'+s+'</span>' }
+function flyTag(){ return '<span class="tag fly">飞行</span>' }
 
+/* ===== 数据表 ===== */
 function renderTable(){
   var q = (document.getElementById('search').value||'').toLowerCase();
   var tf = document.getElementById('typeFilter').value;
@@ -127,76 +237,86 @@ function renderTable(){
     return true;
   });
   list.sort(function(a,b){
-    var va = a[sortField], vb = b[sortField];
+    var va=a[sortField], vb=b[sortField];
     if(sortField==='name'||sortField==='size'||sortField==='move')
       return sortDesc ? String(vb).localeCompare(String(va)) : String(va).localeCompare(String(vb));
     return sortDesc ? (vb||0)-(va||0) : (va||0)-(vb||0);
   });
-  var html = '';
-  for(var i=0; i<list.length; i++){
-    var u = list[i];
-    var sizeBadge = u.size==='巨型' ? tag(u.size,'giant') : u.size==='中型' ? tag(u.size,'air') : tag(u.size,'ground');
-    var flyBadge = u.move==='飞行' ? tag('飞行','air') : '';
-    html += '<tr data-unit="'+u.name+'" class="unit-row" style="cursor:pointer">';
-    html += '<td><div class="unit-name">'+u.name+' '+sizeBadge+' '+flyBadge+'</div></td>';
-    html += '<td>'+u.size+'</td>';
-    html += '<td class="num cost-val">'+fmt(u.cost)+'</td>';
-    html += '<td class="num hp-val">'+fmt(u.hp)+'</td>';
-    html += '<td class="num spd-val">'+fmt(u.speed)+'</td>';
-    html += '<td class="num atk-val">'+fmt(u.atk)+'</td>';
-    html += '<td class="num">'+fmt(u.splash)+'</td>';
-    html += '<td class="num">'+fmt(u.interval)+'</td>';
-    html += '<td class="num">'+fmt(u.range)+'</td>';
-    html += '<td class="num">'+fmt(u.count)+'</td>';
-    html += '<td class="num">'+fmt(u.slots)+'</td>';
-    html += '<td class="num">'+fmt(u.unlock)+'</td></tr>';
+  var html='';
+  for(var i=0;i<list.length;i++){
+    var u=list[i];
+    html+='<tr data-unit="'+u.name+'">';
+    html+='<td><div class="name-cell">'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+'</div></td>';
+    html+='<td>'+u.size+'</td>';
+    html+='<td class="num cost">'+fmt(u.cost)+'</td>';
+    html+='<td class="num hp">'+fmt(u.hp)+'</td>';
+    html+='<td class="num spd">'+fmt(u.speed)+'</td>';
+    html+='<td class="num atk">'+fmt(u.atk)+'</td>';
+    html+='<td class="num">'+fmt(u.splash)+'</td>';
+    html+='<td class="num">'+fmt(u.interval)+'</td>';
+    html+='<td class="num">'+fmt(u.range)+'</td>';
+    html+='<td class="num">'+fmt(u.count)+'</td>';
+    html+='<td class="num">'+fmt(u.slots)+'</td>';
+    html+='<td class="num">'+fmt(u.unlock)+'</td></tr>';
   }
-  document.querySelector('#unitTable tbody').innerHTML = html;
-  document.getElementById('countDisplay').textContent = list.length+' / '+UNITS.length;
-  document.querySelectorAll('th').forEach(function(th){
+  document.querySelector('#unitTable tbody').innerHTML=html;
+  document.getElementById('countDisplay').innerHTML='UNIT <b>'+list.length+'</b> / '+UNITS.length;
+  var ths=document.querySelectorAll('#unitTable th');
+  for(var j=0;j<ths.length;j++){
+    var th=ths[j];
     th.classList.remove('sorted','desc');
-    if(th.dataset.sort === sortField){ th.classList.add('sorted'); if(sortDesc) th.classList.add('desc'); }
-  });
+    if(th.getAttribute('data-sort')===sortField){
+      th.classList.add('sorted');
+      if(sortDesc) th.classList.add('desc');
+    }
+  }
 }
 
+/* ===== 卡片视图 ===== */
 function renderCards(){
-  var q = (document.getElementById('cardSearch').value||'').toLowerCase();
-  var tf = document.getElementById('cardTypeFilter').value;
-  var list = UNITS.filter(function(u){
+  var q=(document.getElementById('cardSearch').value||'').toLowerCase();
+  var tf=document.getElementById('cardTypeFilter').value;
+  var list=UNITS.filter(function(u){
     if(q && u.name.toLowerCase().indexOf(q)===-1) return false;
     if(tf && u.size !== tf) return false;
     return true;
   });
-  var html = '';
-  for(var i=0; i<list.length; i++){
-    var u = list[i];
-    var sizeBadge = u.size==='巨型' ? tag(u.size,'giant') : u.size==='中型' ? tag(u.size,'air') : tag(u.size,'ground');
-    var flyBadge = u.move==='飞行' ? tag('飞行','air') : '';
-    html += '<div class="card" data-unit="'+u.name+'" style="cursor:pointer">';
-    html += '<h3>'+u.name+' '+sizeBadge+' '+flyBadge+'</h3>';
-    html += '<div class="card-row"><span class="card-label">造价</span><span class="card-value cost-val">'+fmt(u.cost)+'</span></div>';
-    html += '<div class="card-row"><span class="card-label">血量</span><span class="card-value hp-val">'+fmt(u.hp)+'</span></div>';
-    html += '<div class="card-row"><span class="card-label">攻击</span><span class="card-value atk-val">'+fmt(u.atk)+'</span></div>';
-    html += '<div class="card-row"><span class="card-label">移速</span><span class="card-value spd-val">'+u.speed+'</span></div>';
-    html += '<div class="card-row"><span class="card-label">射程</span><span class="card-value">'+fmt(u.range)+'</span></div>';
-    html += '<div class="card-row"><span class="card-label">数量x格子</span><span class="card-value">'+fmt(u.count)+' x '+fmt(u.slots)+'</span></div>';
-    html += '</div>';
+  var html='';
+  for(var i=0;i<list.length;i++){
+    var u=list[i];
+    html+='<div class="card" data-unit="'+u.name+'">';
+    html+='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+'</h3>';
+    html+='<div class="card-row"><span class="card-label">造价</span><span class="card-value cost">'+fmt(u.cost)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">血量</span><span class="card-value hp">'+fmt(u.hp)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">攻击</span><span class="card-value atk">'+fmt(u.atk)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">移速</span><span class="card-value spd">'+u.speed+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">射程</span><span class="card-value">'+fmt(u.range)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">数量 × 格子</span><span class="card-value">'+fmt(u.count)+' × '+fmt(u.slots)+'</span></div>';
+    html+='</div>';
   }
-  document.getElementById('cardGrid').innerHTML = html;
+  document.getElementById('cardGrid').innerHTML=html;
 }
 
+/* ===== 详情弹窗 ===== */
 function showDetail(name){
-  var u = UNITS.find(function(x){return x.name===name}); if(!u) return;
-  var r = u._raw;
-  var fields = [['造价','cost-val'],['单体血量','hp-val'],['移速','spd-val'],['单次攻击','atk-val'],['溅射范围',''],['攻击间隔',''],['射程',''],['对空',''],['数量',''],['占用格子',''],['解锁费用',''],['伤害血量',''],['升级经验要求',''],['提供经验','']];
-  var h = '<h3>'+u.name+' '+tag(u.size,u.size==='巨型'?'giant':u.size==='中型'?'air':'ground')+(u.move==='飞行'?tag('飞行','air'):'')+'</h3><div style="margin-top:12px">';
-  for(var i=0; i<fields.length; i++){
-    var f = fields[i][0], c = fields[i][1];
-    var v = r[f] !== undefined ? r[f] : '-';
-    h += '<div class="card-row"><span class="card-label">'+f+'</span><span class="card-value '+c+'">'+v+'</span></div>';
+  var u=UNITS.find(function(x){return x.name===name}); if(!u) return;
+  var r=u._raw;
+  var fields=[
+    ['造价','cost'],['单体血量','hp'],['移速','spd'],['单次攻击','atk'],
+    ['溅射范围',''],['攻击间隔',''],['射程',''],['对空',''],
+    ['数量',''],['占用格子',''],['解锁费用',''],['伤害血量',''],
+    ['升级经验要求',''],['提供经验','']
+  ];
+  var h='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+'</h3>';
+  h+='<div class="popup-sub">UNIT #'+u._raw.id+' · '+(u.move==='飞行'?'AIR':'GROUND')+' · '+u.size+'</div>';
+  h+='<div class="stat-grid">';
+  for(var i=0;i<fields.length;i++){
+    var f=fields[i][0], c=fields[i][1];
+    var v=(r[f]!==undefined && r[f]!==null)?r[f]:'-';
+    h+='<div class="stat-cell"><span class="k">'+f+'</span><span class="v '+c+'">'+v+'</span></div>';
   }
-  h += '</div>';
-  document.getElementById('detailContent').innerHTML = h;
+  h+='</div>';
+  document.getElementById('detailContent').innerHTML=h;
   document.getElementById('overlay').classList.add('show');
   document.getElementById('detailPanel').classList.add('show');
 }
@@ -204,31 +324,90 @@ function closeDetail(){
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('detailPanel').classList.remove('show');
 }
+
+/* ===== 标签切换 ===== */
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
-  event.target.classList.add('active');
-  document.getElementById('tab-table').style.display = t==='table'?'':'none';
-  document.getElementById('tab-cards').style.display = t==='cards'?'':'none';
-  document.getElementById('tab-about').style.display = t==='about'?'':'none';
+  var tabs=document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active',tabs[i].getAttribute('data-tab')===t);
+  document.getElementById('tab-table').style.display=t==='table'?'':'none';
+  document.getElementById('tab-cards').style.display=t==='cards'?'':'none';
+  document.getElementById('tab-about').style.display=t==='about'?'':'none';
+  document.getElementById('filters-table').style.display=t==='table'?'':'none';
+  document.getElementById('filters-cards').style.display=t==='cards'?'':'none';
   if(t==='table') renderTable();
   if(t==='cards') renderCards();
 }
-document.querySelectorAll('th').forEach(function(th){
-  th.addEventListener('click', function(){
-    var f = th.dataset.sort;
+
+/* ===== 事件绑定 ===== */
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click',function(){switchTab(t.getAttribute('data-tab'))});
+});
+document.querySelectorAll('#unitTable th').forEach(function(th){
+  th.addEventListener('click',function(){
+    var f=th.getAttribute('data-sort');
     if(sortField===f) sortDesc=!sortDesc; else{sortField=f;sortDesc=false}
     renderTable();
   });
 });
-document.addEventListener('keydown', function(e){if(e.key==='Escape') closeDetail()});
-
-// Click delegation - no inline onclick needed
-document.addEventListener('click', function(e){
-  var el = e.target.closest && e.target.closest('[data-unit]');
-  if(el){ showDetail(el.getAttribute('data-unit')); }
+document.getElementById('closeBtn').addEventListener('click',closeDetail);
+document.getElementById('overlay').addEventListener('click',closeDetail);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail()});
+document.addEventListener('click',function(e){
+  var el=e.target.closest&&e.target.closest('[data-unit]');
+  if(el) showDetail(el.getAttribute('data-unit'));
 });
-// INIT
+
+/* ===== API 数据源 ===== */
+function api(url, opts){
+  return fetch(url, opts).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
+}
+function setStatus(text, cls){
+  var el=document.getElementById('statusBar');
+  el.innerHTML='<span class="'+ (cls||'') +'">'+text+'</span>';
+}
+function refreshData(){
+  api('/api/data').then(function(d){
+    if(d && d.length){
+      UNITS = d.map(function(u){ return {
+        name:u.name, size:u["体型"], move:u["移动类型"],
+        cost:+u["造价"]||0, hp:+u["单体血量"]||0, speed:+u["移速"]||0,
+        atk:+u["单次攻击"]||0, splash:+u["溅射范围"]||0, interval:+u["攻击间隔"]||0,
+        range:+u["射程"]||0, count:+u["数量"]||0, slots:+u["占用格子"]||0,
+        unlock:isNaN(+u["解锁费用"])?u["解锁费用"]:(+u["解锁费用"]||0),
+        _raw:u
+      }});
+      renderTable(); renderCards();
+    }
+  }).catch(function(){ /* 离线：保留内嵌 RAW 数据 */ });
+}
+function refreshStatus(){
+  api('/api/status').then(function(s){
+    var parts=['上次检查: '+(s.last_title||'无')];
+    if(s.has_new) parts.push('<span class="warn">有新公告，点「检查更新」</span>');
+    setStatus(parts.join(' · '));
+  }).catch(function(){ setStatus('服务器未连接 · 离线模式','warn'); });
+}
+document.getElementById('checkBtn').addEventListener('click', function(){
+  var btn=document.getElementById('checkBtn');
+  btn.disabled=true; setStatus('检查中…','warn');
+  fetch('/api/check',{method:'POST'}).then(function(r){return r.json();})
+    .then(function(res){
+      if(res.ok){
+        setStatus('['+(res.version||'?')+'] '+res.message, res.applied>0?'ok':'');
+        refreshData();
+      } else {
+        setStatus('检查失败: '+(res.error||'未知错误'),'err');
+      }
+    }).catch(function(){ setStatus('检查失败: 无法连接服务器','err'); })
+    .finally(function(){ btn.disabled=false; });
+});
+// 每 30 分钟刷新一次状态显示（不触发检查）
+setInterval(refreshStatus, 30*60*1000);
+refreshStatus();
+
+/* ===== 初始化 ===== */
 renderTable();
+refreshData();
 </script>
 </body>
 </html>
