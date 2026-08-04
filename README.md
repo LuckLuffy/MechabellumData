@@ -6,19 +6,18 @@
 
 ## 下载使用（免命令行）
 
-**`dist/MechabellumMonitor.exe`**（Windows x64，单文件，约 43MB）
+**`dist/MechabellumMonitor.exe`**（Windows x64，单文件，约 46MB）
 
 ```
 1. 下载 MechabellumMonitor.exe
-2. 双击运行 —— 自动打开浏览器 http://localhost:8800
-3. 首次运行会在 exe 旁生成 .env 模板
-4. 用文本编辑器打开 .env，填入你自己的 Deepseek API Key：
-     DEEPSEEK_API_KEY=sk-你的Key     ← 申请：https://platform.deepseek.com
-5. 保存后，在网页点「检查更新」即可自动解析平衡性公告
+2. 双击运行 —— 弹出配置窗口，填入你的 Deepseek API Key
+     （申请：https://platform.deepseek.com）
+3. 点「保存」→ 自动打开浏览器 http://localhost:8800
+4. 点网页「检查更新」即可自动解析平衡性公告
 ```
 
 > 程序不内置任何 API Key —— 你的 Key 只存在你自己电脑的 `.env` 里，不公开。
-> 未填 Key 时仍能检测公告并保存到 `cache/parsed_posts/` 供查看，只是不自动解析。
+> 首次运行（或 Key 缺失时）自动弹窗填写；点「跳过」可暂不配置，仅检测公告并保存到 `cache/parsed_posts/`，下次启动仍会提示。
 
 重新打包：`python build_exe.py`（需先 `pip install pyinstaller`）。
 

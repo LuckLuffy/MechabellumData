@@ -66,9 +66,68 @@ def ensure_resources(base: str) -> None:
     os.makedirs(os.path.join(base, "outputs"), exist_ok=True)
 
 
+# 判断 key 是否已有效配置（占位符/空值视为未配置）
+_PLACEHOLDER_HINTS = ("在此填入", "replace", "yourkey", "your_key", "xxx", "sk-这里")
+
+
+def _read_env_key(env_path: str) -> str:
+    try:
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("DEEPSEEK_API_KEY="):
+                    return line.split("=", 1)[1].strip()
+    except OSError:
+        pass
+    return ""
+
+
+def _key_valid(key: str) -> bool:
+    key = (key or "").strip()
+    if not key:
+        return False
+    low = key.lower()
+    return not any(t in low for t in _PLACEHOLDER_HINTS)
+
+
+def _write_env_key(env_path: str, key: str) -> None:
+    """把 key 写回 .env 的 DEEPSEEK_API_KEY 行（不存在则插入）。"""
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    replaced = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith("DEEPSEEK_API_KEY="):
+            lines[i] = f"DEEPSEEK_API_KEY={key}"
+            replaced = True
+    if not replaced:
+        lines.insert(0, f"DEEPSEEK_API_KEY={key}")
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def ensure_api_key(base: str) -> None:
+    """未配置有效 key 时弹出窗口填写；跳过则保持离线模式。"""
+    env_path = os.path.join(base, ".env")
+    if _key_valid(_read_env_key(env_path)):
+        return  # 已配置，不打扰
+    try:
+        from gui import ask_for_api_key
+        key = ask_for_api_key()
+        if key and _key_valid(key):
+            _write_env_key(env_path, key)
+            print("[配置] Deepseek API Key 已保存")
+        else:
+            print("[提示] 未配置 API Key，将仅检测公告不自动解析。")
+    except Exception as e:
+        print(f"[提示] 配置窗口打开失败（{e}）。可手动编辑 exe 旁的 .env 填写 DEEPSEEK_API_KEY。")
+
+
 def main():
     base = get_base_dir()
     ensure_resources(base)
+    ensure_api_key(base)
 
     # 让 config 解析 ROOT_DIR 到 exe 旁，再加载 server
     sys.path.insert(0, base)
