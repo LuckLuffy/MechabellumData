@@ -10,7 +10,7 @@ OUTPUT_PATH = os.path.join(ROOT_DIR, "frontend", "unit_data.json")
 GROUND_FORCE = {"台风", "野马", "先知"}
 
 # ===== 公式规则（用户特殊设计）=====
-# 多武器单位：武器数（F 对单输出 = E攻击力 × 武器数）
+# 多弹药单位：弹药数（F 对单输出 = E攻击力 × 弹药数）
 MULTI_WEAPON = {
     "暴雨": 4, "鬼鳐": 2, "先知": 2,
     "恶灵": 4, "霸主": 4, "泰山": 4, "战争工厂": 2,
@@ -34,7 +34,7 @@ def compute_derived(name: str, atk, count, interval,
     count = float(count or 0)
     interval = float(interval or 0)
 
-    # 对单输出 F = 攻击力 × 武器数
+    # 对单输出 F = 攻击力 × 弹药数
     if single_out in (None, ""):
         single_out = atk * weapon
     else:

@@ -234,18 +234,18 @@ MAIN = """<main>
       <table class="formula-table">
         <tr><th>字段</th><th>公式</th><th>说明</th></tr>
         <tr><td>攻击力</td><td>—</td><td>单管单发伤害（原始数据）</td></tr>
-        <tr><td>对单输出</td><td>= 攻击力 × 武器数</td><td>多武器单位：暴雨×4、鬼鳐×2、先知×2、恶灵×4、霸主×4、泰山×4、战争工厂×2</td></tr>
-        <tr><td>爆发峰值</td><td>= 对单输出 × 数量</td><td>雷霆 ×3、深渊 ×10（特殊倍率）</td></tr>
+        <tr><td>对单输出</td><td>= 攻击力 × 弹药数</td><td>多弹药单位：暴雨×4、鬼鳐×2、先知×2、恶灵×4、霸主×4、泰山×4、战争工厂×2</td></tr>
+        <tr><td>爆发峰值</td><td>= 对单输出 × 数量</td><td>雷霆 ×3、深渊 ×10（总共20次判定取中间值10次）</td></tr>
         <tr><td>对单DPS</td><td>= 对单输出 ÷ 攻击间隔</td><td>深渊例外：= 爆发峰值 ÷ 间隔</td></tr>
         <tr><td>总DPS</td><td>= 对单DPS × 数量</td><td>全队持续输出</td></tr>
         <tr><td>总血量</td><td>= 单体血量 × 数量</td><td>全队血量</td></tr>
-        <tr><td>输出性价比</td><td>= 对单DPS ÷ 造价</td><td>单位造价输出效率</td></tr>
-        <tr><td>血量性价比</td><td>= 单体血量 ÷ 造价</td><td>单位造价血量效率</td></tr>
+        <tr><td>输出性价比</td><td>= 总DPS ÷ 造价</td><td>单位造价输出效率</td></tr>
+        <tr><td>血量性价比</td><td>= 总血量 ÷ 造价</td><td>单位造价血量效率</td></tr>
       </table>
       <h3 style="margin-top:24px">特殊单位</h3>
       <ul class="formula-list">
-        <li><b>深渊</b>：爆发峰值 ×10（十束射线）；对单DPS 用 爆发峰值÷间隔（持续输出含倍率）</li>
-        <li><b>雷霆</b>：爆发峰值 ×3（三管齐射）；对单DPS 用 对单输出÷间隔（持续DPS用单管，不含×3）</li>
+        <li><b>深渊</b>：爆发峰值 ×10（10次判定）；对单DPS 用 爆发峰值÷间隔（持续输出含倍率）</li>
+        <li><b>雷霆</b>：爆发峰值 ×3（3道闪电分别索敌）；对单DPS 用 对单输出÷间隔（打单只计算一道闪电伤害）</li>
       </ul>
     </div>
   </div>
@@ -276,11 +276,11 @@ POPUP = """<div class="overlay" id="overlay"></div>
 JS_PRE = """var RAW = __DATA_JSON__;
 
 // 统一映射函数：内嵌 RAW 与服务器 /api/data 两条路径共用，避免字段漂移
-// 新表结构：对单输出F/爆发峰值G/对单DPSH 由表格提供（含武器数）
+// 新表结构：对单输出F/爆发峰值G/对单DPSH 由表格提供（含弹药数）
 function makeUnit(u){
   var cost = +u["造价"]||0, hp = +u["单体血量"]||0;
   var atk = +u["攻击力"]||0;              // 攻击力 E
-  var single_out = +u["对单输出"]||0;     // 对单输出 F（=攻击力×武器数）
+  var single_out = +u["对单输出"]||0;     // 对单输出 F（=攻击力×弹药数）
   var burst = +u["爆发峰值"]||0;          // 爆发峰值 G（=F×数量，雷霆×3深渊×10）
   var dps = +u["对单DPS"]||0;            // 对单DPS H（=F/间隔，深渊=G/间隔）
   var count = +u["数量"]||0;
@@ -295,8 +295,8 @@ function makeUnit(u){
     unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
     total_dps: total_dps,
     total_hp: total_hp,
-    dps_ratio: cost > 0 ? dps / cost : 0,   // 输出性价比 = 对单DPS / 造价
-    hp_ratio: cost > 0 ? hp / cost : 0,     // 血量性价比 = 血量 / 造价
+    dps_ratio: cost > 0 ? total_dps / cost : 0,  // 输出性价比 = 总DPS / 造价
+    hp_ratio: cost > 0 ? total_hp / cost : 0,    // 血量性价比 = 总血量 / 造价
     _raw: u
   };
 }
