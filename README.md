@@ -6,15 +6,15 @@
 
 指导老师：[**@流影**](https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click)
 
-## 🌐 在线查看（免 API Key）
+## 🌐 在线查看
 
-**国内访问（推荐）：** https://mechabellumdata.netlify.app/
+**国内访问：** https://mechabellumdata.netlify.app/
 
 **国际备份：** https://LuckLuffy.github.io/MechabellumData/
 
 - 免 API Key、免安装、直接看数据
 - 每周一自动更新，数据更新时网页自动热更新
-- 双站同步：Netlify（国内友好）+ GitHub Pages（国际）
+- 双站同步：Netlify + GitHub Pages
 
 ## 下载使用
 
@@ -51,7 +51,7 @@
 > 这是纯静态数据页，数据已内嵌。区别是：静态页只能看当前数据，
 > exe + AI 才能自动监控 Steam 公告并实时更新数据表。
 
-## 从源码运行（开发）
+## 从源码运行
 
 ```bash
 # 安装依赖
