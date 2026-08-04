@@ -4,6 +4,34 @@ import os
 # 项目根目录
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def _load_env():
+    """从项目根 .env 加载 KEY=VALUE（零依赖）。已存在的环境变量优先。"""
+    env_path = os.path.join(ROOT_DIR, ".env")
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key:
+                os.environ.setdefault(key, value)
+
+
+_load_env()
+
+# 本地服务器
+SERVER_PORT = int(os.environ.get("SERVER_PORT", "8800"))
+
+# Deepseek API（Anthropic 兼容端点）
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/anthropic")
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
 # Steam RSS
 STEAM_APP_ID = "669330"
 RSS_URL = f"https://store.steampowered.com/feeds/news/app/{STEAM_APP_ID}/"
