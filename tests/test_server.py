@@ -33,11 +33,16 @@ class TestServer(unittest.TestCase):
         # 阻断 Steam RSS 网络调用，让 has_new 确定性
         cls._patch = mock.patch("server.find_new_posts", return_value=[])
         cls._patch.start()
+        # 启动检查线程调用的是 balance_monitor.run_check → balance_monitor.find_new_posts，
+        # 一并阻断，避免真实网络请求及对 outputs/frontend 的写入
+        cls._patch_monitor = mock.patch("balance_monitor.find_new_posts", return_value=[])
+        cls._patch_monitor.start()
         # 用测试端口，避免占用 8800
         server.start(port=8900)
 
     @classmethod
     def tearDownClass(cls):
+        cls._patch_monitor.stop()
         cls._patch.stop()
         server.stop()
         # 恢复原始缓存；若原本不存在则删除测试桩

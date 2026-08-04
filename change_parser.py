@@ -68,8 +68,15 @@ def clean_html(html_str: str) -> str:
     return text
 
 
-def parse_changes(post: dict) -> list[dict]:
-    """使用 Deepseek（Anthropic 兼容端点）解析公告中的数值变动。"""
+def parse_changes(post: dict):
+    """使用 Deepseek（Anthropic 兼容端点）解析公告中的数值变动。
+
+    返回语义：
+      - list[dict]：解析成功（含空列表，表示公告确实无数值变动）
+      - None：解析失败（API 异常 / 非 JSON / 非数组）。调用方应视为“这次没
+        成功解析”，不要把该帖标记为已处理，以便下次重试。离线模式（未配置
+        DEEPSEEK_API_KEY）仍返回 []，此时公告已落盘待手动分析。
+    """
     if not DEEPSEEK_API_KEY:
         return _parse_offline(post)
 
@@ -103,15 +110,18 @@ def parse_changes(post: dict) -> list[dict]:
 
         try:
             changes = json.loads(response_text)
-            if isinstance(changes, list):
-                return changes
         except json.JSONDecodeError:
             print(f"[WARN] Deepseek 返回非JSON格式: {response_text[:200]}")
+            return None
+
+        if isinstance(changes, list):
+            return changes
+        print(f"[WARN] Deepseek 返回非数组JSON: {response_text[:200]}")
+        return None
 
     except Exception as e:
         print(f"[ERROR] Deepseek API 调用失败: {e}")
-
-    return []
+        return None
 
 
 # 旧名兼容

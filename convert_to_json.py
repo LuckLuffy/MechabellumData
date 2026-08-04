@@ -1,13 +1,20 @@
-"""将 Excel 基准表转换为 JSON 供前端使用"""
+"""将 Excel 数据表转换为 JSON 供前端使用"""
 import json
 import os
-from config import BASELINE_XLSX, ROOT_DIR
+from config import ROOT_DIR
 from sheet_updater import load_workbook
 
 OUTPUT_PATH = os.path.join(ROOT_DIR, "frontend", "unit_data.json")
 
-def main():
-    wb, ws, row_map, col_map = load_workbook(BASELINE_XLSX)
+
+def main(source_path=None):
+    """把工作簿导出为 frontend/unit_data.json(.js)。
+
+    source_path 为 None 时由 load_workbook 自动解析最新版本（累积全部历史变更，
+    否则回退基准表）；显式传入（如 run_check 刚保存的新版 xlsx）则导出该文件，
+    确保 /api/data 反映最新已应用的数据。
+    """
+    wb, ws, row_map, col_map = load_workbook(source_path)
 
     units = []
     for row in range(2, ws.max_row + 1):

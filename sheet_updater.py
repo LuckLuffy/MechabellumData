@@ -17,12 +17,33 @@ def ensure_output_dir():
     os.makedirs(CACHE_DIR, exist_ok=True)
 
 
+def _resolve_newest_sheet() -> str:
+    """解析最新数据表：outputs/ 下最近保存的 unit_data_v*.xlsx，若无则回退基准表。
+
+    按文件修改时间取最新（版本号可能是 1.12 / 1.11.1.1a 等，不能按字典序比较），
+    保证多次检查的变更在 outputs/ 中累积，而不是每次从基准表重建。
+    """
+    ensure_output_dir()
+    candidates = [
+        os.path.join(OUTPUT_DIR, f)
+        for f in os.listdir(OUTPUT_DIR)
+        if f.startswith(OUTPUT_PREFIX) and f.endswith(".xlsx")
+    ]
+    if not candidates:
+        return BASELINE_XLSX
+    candidates.sort(key=os.path.getmtime)
+    return candidates[-1]
+
+
 def load_workbook(path: str = None) -> tuple:
     """加载 Excel 工作簿，返回 (workbook, sheet, row_map, col_map)
+
+    path 为 None 时自动解析 outputs/ 下最新版本（实现跨版本变更累积），
+    否则使用显式指定的文件。
     row_map: {单位名: 行号}
     col_map: {列名: 列号}
     """
-    path = path or BASELINE_XLSX
+    path = path or _resolve_newest_sheet()
     wb = openpyxl.load_workbook(path)
     ws = wb.active
 

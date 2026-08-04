@@ -9,12 +9,13 @@ Mechabellum 平衡性监控系统 — 主入口
   python balance_monitor.py --help   # 帮助
 
 环境变量：
-  ANTHROPIC_API_KEY     Claude API 密钥（用于解析公告内容）
+  DEEPSEEK_API_KEY      Deepseek API 密钥（用于解析公告内容）
   如未设置，公告将保存到 cache/parsed_posts/ 供手动分析
 """
 
 import sys
 import os
+import threading
 
 # Add project root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +26,7 @@ from change_parser import is_balance_update, parse_changes, format_changes_for_d
 from sheet_updater import (
     load_workbook, apply_change, save_new_sheet, log_changes, copy_baseline
 )
+from convert_to_json import main as export_to_json
 
 
 def print_banner():
@@ -80,8 +82,21 @@ def _resolve_field(field: str):
     return None
 
 
+_run_lock = threading.Lock()
+
+
 def run_check() -> dict:
-    """执行完整检查管线，返回结构化结果。"""
+    """执行完整检查管线，返回结构化结果。
+
+    内部持锁串行化，防止 server 启动线程与 POST /api/check 并发执行导致
+    重复应用 / 缓存与 xlsx 竞争。run_check 不会递归调用自身，普通 Lock 即可。
+    """
+    with _run_lock:
+        return _run_check_locked()
+
+
+def _run_check_locked() -> dict:
+    """run_check 的实际实现（调用方需持有 _run_lock）。"""
     result = {
         "new_posts": 0, "balance_posts": 0, "applied": 0,
         "version": None, "message": "", "changes": [],
@@ -97,6 +112,7 @@ def run_check() -> dict:
     result["version"] = latest_version
 
     wb, ws, row_map, col_map = load_workbook()
+    parse_failed = False  # 是否有平衡帖解析失败（API 异常等），失败则不推进缓存
 
     for post in posts:
         if not is_balance_update(post):
@@ -104,7 +120,10 @@ def run_check() -> dict:
 
         result["balance_posts"] += 1
         changes = parse_changes(post)
-        if not changes:
+        if changes is None:  # 解析失败：保留该帖，下次检查重试
+            parse_failed = True
+            continue
+        if not changes:  # 解析成功但确实无数值变动
             continue
 
         applied = 0
@@ -121,12 +140,14 @@ def run_check() -> dict:
                 applied += 1
 
         if applied > 0:
-            save_new_sheet(wb, latest_version)
+            saved_path = save_new_sheet(wb, latest_version)
             log_changes(latest_version, post["title"], changes)
+            # 重新导出 frontend/unit_data.json，让 /api/data 反映新版本
+            export_to_json(source_path=saved_path)
             result["applied"] += applied
             result["changes"].extend(changes)
 
-    if posts:
+    if posts and not parse_failed:
         last = posts[-1]
         update_last_guid(last["guid"], last["title"], last["pub_date"])
 
