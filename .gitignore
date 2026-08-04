@@ -50,3 +50,5 @@ dist/*.xlsx
 
 # 本地私有文档（不推送 git）
 local/
+# UPX 压缩工具（本地构建用）
+upx/

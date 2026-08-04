@@ -51,7 +51,7 @@ def main():
             sys.exit(1)
     print("[2/3] 内置资源齐全")
 
-    # 3. PyInstaller 构建
+    # 3. PyInstaller 构建（自动检测 UPX 压缩）
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean",
@@ -63,7 +63,17 @@ def main():
         "--hidden-import", "anthropic",
         os.path.join(ROOT, "app.py"),
     ]
-    print("[3/3] 运行 PyInstaller...")
+    # 若存在 upx.exe 则启用 UPX 压缩（可显著缩小体积）
+    upx_bin = None
+    for root_dir, _dirs, files in os.walk(os.path.join(ROOT, "upx")):
+        if "upx.exe" in files:
+            upx_bin = os.path.join(root_dir, "upx.exe")
+            break
+    if upx_bin:
+        cmd += ["--upx-dir", os.path.dirname(upx_bin)]
+        print("[3/3] 运行 PyInstaller (UPX 压缩)...")
+    else:
+        print("[3/3] 运行 PyInstaller (未找到 UPX)...")
     r = subprocess.run(cmd, cwd=ROOT)
     if r.returncode != 0:
         print("[FAIL] PyInstaller 构建失败")
