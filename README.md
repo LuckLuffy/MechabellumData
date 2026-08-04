@@ -8,7 +8,14 @@
 
 ## 下载使用（免命令行）
 
-**`dist/MechaMv1.0.1.exe`**（Windows x64，单文件，约 30MB）
+**Windows x64 免安装版 · 单文件 · 约 30MB**
+
+📥 下载渠道（任选其一）：
+
+| 渠道 | 说明 |
+|------|------|
+| **GitHub Release** | [点此前往 Release 下载](https://github.com/LuckLuffy/MechabellumData/releases) |
+| **百度网盘**（推荐国内） | [MechaMv1.0.1.exe](https://pan.baidu.com/s/1xYIHrQ8eJ8ODswV71m4LtA?pwd=c28c) · 提取码 `c28c` |
 
 ```
 1. 下载 MechaMv1.0.1.exe
@@ -20,6 +27,7 @@
 
 > 程序不内置任何 API Key —— 你的 Key 只存在你自己电脑的 `.env` 里，不公开。
 > 首次运行（或 Key 缺失时）自动弹窗填写；点「跳过」可暂不配置，仅检测公告并保存到 `cache/parsed_posts/`，下次启动仍会提示。
+> 若解压/下载报毒，属 PyInstaller 打包工具的常见误报，可添加信任后使用。
 
 重新打包：`python build_exe.py`（需先 `pip install pyinstaller`）。
 
@@ -152,4 +160,4 @@ python -m unittest discover tests   # 26 tests
 
 ⭐ **求求点个小星星，谢谢各位指挥官！** ⭐
 
-如果这个工具帮到了你，欢迎给仓库点个 Star，支持后续持续更新（新版本、新兵种、平衡性自动同步）。
+如果这个工具帮到了你，欢迎给仓库点个 Star，支持后续持续更新。
