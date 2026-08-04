@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import BALANCE_KEYWORDS
 from steam_fetcher import find_new_posts, get_latest_version, update_last_guid, fetch_rss
-from change_parser import is_balance_update, parse_with_claude, format_changes_for_display
+from change_parser import is_balance_update, parse_changes, format_changes_for_display
 from sheet_updater import (
     load_workbook, apply_change, save_new_sheet, log_changes, copy_baseline
 )
@@ -64,90 +64,83 @@ def cmd_test():
         print(f"  {tag} {item['title']}")
 
         if is_bal:
-            changes = parse_with_claude(item)
+            changes = parse_changes(item)
             print(format_changes_for_display(changes))
         print()
 
 
-def cmd_check():
-    """主流程：检查新公告 → 解析 → 更新"""
+def _resolve_field(field: str):
+    """把 Deepseek 返回的属性名解析为 Excel 列名。"""
+    from config import COLUMN_MAP
+    if field in COLUMN_MAP:
+        return field
+    for cn, en in COLUMN_MAP.items():
+        if cn == field or en == field:
+            return cn
+    return None
+
+
+def run_check() -> dict:
+    """执行完整检查管线，返回结构化结果。"""
+    result = {
+        "new_posts": 0, "balance_posts": 0, "applied": 0,
+        "version": None, "message": "", "changes": [],
+    }
+
     posts = find_new_posts()
     if not posts:
-        print("\n[OK] 无新公告。")
-        return
+        result["message"] = "无新公告。"
+        return result
 
-    print(f"\n发现 {len(posts)} 条新公告\n")
+    result["new_posts"] = len(posts)
+    latest_version = get_latest_version(posts) or posts[-1]["title"][:30]
+    result["version"] = latest_version
 
-    balance_found = False
-    latest_version = get_latest_version(posts)
-    if not latest_version:
-        latest_version = posts[-1]["title"][:30]
-
-    # 加载基准表（加载最新版本的 xlsx）
     wb, ws, row_map, col_map = load_workbook()
 
     for post in posts:
-        print(f"--- {post['title']} ---")
-
         if not is_balance_update(post):
-            print("  [SKIP] 非平衡性更新\n")
             continue
 
-        print("  [检测] 平衡性调整公告，正在解析...")
-        changes = parse_with_claude(post)
-
+        result["balance_posts"] += 1
+        changes = parse_changes(post)
         if not changes:
-            print("  [INFO] 未提取到数值变动\n")
-            balance_found = True  # 仍是平衡更新，只是没数值
             continue
 
-        print(f"  [找到] {len(changes)} 条数值变动：")
-        print(format_changes_for_display(changes))
-        print()
-
-        # 应用变更
         applied = 0
         for change in changes:
             unit = change.get("unit", "")
             field = change.get("field", "")
             new_val = change.get("new", "")
-
             if not unit or not field:
                 continue
-
-            # 尝试匹配列名
-            field_en = None
-            from config import COLUMN_MAP
-            if field in COLUMN_MAP:
-                field_en = field
-            else:
-                for cn, en in COLUMN_MAP.items():
-                    if cn == field or en == field:
-                        field_en = cn
-                        break
-
+            field_en = _resolve_field(field)
             if field_en is None:
-                print(f"  [SKIP] 未知属性: {field}")
                 continue
-
             if apply_change(ws, row_map, col_map, unit, field_en, str(new_val)):
                 applied += 1
 
         if applied > 0:
             save_new_sheet(wb, latest_version)
             log_changes(latest_version, post["title"], changes)
-            balance_found = True
-        print()
+            result["applied"] += applied
+            result["changes"].extend(changes)
 
-    # 更新缓存（标记最新帖）
     if posts:
         last = posts[-1]
         update_last_guid(last["guid"], last["title"], last["pub_date"])
 
-    if balance_found:
-        print(f"\n[DONE] 数据表已更新至版本 {latest_version}")
-    else:
-        print(f"\n[DONE] 无平衡性数值变动需要更新。")
+    result["message"] = (
+        f"应用 {result['applied']} 条变动至版本 {latest_version}。"
+        if result["applied"] else "无平衡性数值变动需要更新。"
+    )
+    return result
+
+
+def cmd_check():
+    """主流程：检查新公告 → 解析 → 更新"""
+    result = run_check()
+    print(result["message"])
 
 
 def main():
