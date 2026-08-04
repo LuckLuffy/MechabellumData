@@ -414,3 +414,37 @@ CE脚本策略：
 6. README 中补充 About 说明
 
 仓库地址：https://github.com/LuckLuffy/MechabellumData
+======================================================================
+2026-08-04 对话记录 #11：前后端连接 + 平衡性监控（subagent-driven）
+----------------------------------------------------------------------
+需求：
+前端连接后端，实现监控识别 + 平衡性更新自动修改数据
+
+设计（brainstorming → spec → plan 完整流程）：
+- 触发：后端启动自动检查 + 前端「检查更新」按钮（30天定时器留作未来）
+- 解析：Deepseek API（Anthropic 兼容端点 https://api.deepseek.com/anthropic，模型 deepseek-v4-flash）
+- 服务器：Python 标准库 http.server，端口 8800
+
+实现（7 任务，每任务子代理 + 审查）：
+- Task1 config.py: .env 加载器 + SERVER_PORT + DEEPSEEK 配置
+- Task2 .env: 填入 Deepseek key（gitignored）
+- Task3 change_parser.py: 切 Deepseek + ThinkingBlock 修复（deepseek 返回 thinking 块，需遍历取 text）
+- Task4 balance_monitor.py: 抽 run_check() 返回结构化 dict
+- Task5 server.py: 5 端点 + 启动检查线程（测试 hermitic 化 + 缓存保存/恢复）
+- Task6 前端: 检查按钮 + 状态条 + fetch(/api/data) 离线降级 + 30min 只读轮询
+- Task7 端到端验证 + 最终整支审查
+
+最终审查发现并修复：
+- Critical: run_check 应用后未重建 frontend/unit_data.json → /api/data 永远旧数据
+  → convert_to_json.main(source_path) + run_check 导出新文件
+- Important: 版本不累积（每次从基准表重建）→ load_workbook 解析最新 output
+- Important: 解析失败仍推进 last_guid → 丢失更新 → parse_changes 失败返回 None，失败不推进
+- Important: 并发 run_check 竞态 → threading.Lock 串行化
+
+关键文件：
+- server.py, balance_monitor.py, change_parser.py, config.py, convert_to_json.py, sheet_updater.py
+- tests/: 26 个 unittest 全绿
+- docs/superpowers/: spec + plan
+
+Deepseek 关键经验：Anthropic 兼容端点的 thinking 模式返回 ThinkingBlock（无 .text），
+须遍历 content 块取 TextBlock，否则每次解析静默失败。
