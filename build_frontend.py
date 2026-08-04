@@ -98,6 +98,7 @@ tbody tr:last-child td{border-bottom:none}
 .tag.medium{background:rgba(79,195,247,.10);color:var(--air);border:1px solid rgba(79,195,247,.3)}
 .tag.small{background:rgba(138,148,160,.10);color:var(--small);border:1px solid rgba(138,148,160,.25)}
 .tag.fly{background:rgba(121,192,255,.08);color:var(--air);border:1px solid rgba(121,192,255,.2)}
+.tag.aa{background:rgba(79,195,247,.14);color:var(--spd);border:1px solid rgba(79,195,247,.35)}
 .cost{color:var(--accent);font-weight:600}
 .hp{color:var(--hp);font-weight:600}
 .atk{color:var(--atk);font-weight:600}
@@ -265,6 +266,9 @@ function fmt(v){ return v==null||isNaN(v)?'-':Number.isInteger(v)?v.toLocaleStri
 function fmt2(v){ return (v==null||isNaN(v)) ? '-' : v.toFixed(2) }
 function sizeTag(s){ return '<span class="tag '+(s==='超巨型'?'super-giant':s==='巨型'?'giant':s==='中型'?'medium':'small')+'">'+s+'</span>' }
 function flyTag(){ return '<span class="tag fly">飞行</span>' }
+// 对空标签：以下单位具备显著对空能力
+var AA_UNITS = ['长弓','野马','先知','台风','熔点'];
+function aaTag(name){ return AA_UNITS.indexOf(name)>=0 ? '<span class="tag aa">对空</span>' : ''; }
 
 /* ===== 数据表 ===== */
 function renderTable(){
@@ -287,7 +291,7 @@ function renderTable(){
   for(var i=0;i<list.length;i++){
     var u=list[i];
     html+='<tr data-unit="'+u.name+'">';
-    html+='<td><div class="name-cell">'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+'</div></td>';
+    html+='<td><div class="name-cell">'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+aaTag(u.name)+'</div></td>';
     html+='<td>'+u.size+'</td>';
     html+='<td class="num cost">'+fmt(u.cost)+'</td>';
     html+='<td class="num hp">'+fmt(u.hp)+'</td>';
@@ -332,7 +336,7 @@ function renderCards(){
   for(var i=0;i<list.length;i++){
     var u=list[i];
     html+='<div class="card" data-unit="'+u.name+'">';
-    html+='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+'</h3>';
+    html+='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+aaTag(u.name)+'</h3>';
     html+='<div class="card-row"><span class="card-label">造价</span><span class="card-value cost">'+fmt(u.cost)+'</span></div>';
     html+='<div class="card-row"><span class="card-label">血量</span><span class="card-value hp">'+fmt(u.hp)+'</span></div>';
     html+='<div class="card-row"><span class="card-label">攻击</span><span class="card-value atk">'+fmt(u.atk)+'</span></div>';
@@ -354,7 +358,7 @@ function showDetail(name){
     ['数量',''],['占用格子',''],['解锁费用',''],['伤害血量',''],
     ['升级经验要求',''],['提供经验','']
   ];
-  var h='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+'</h3>';
+  var h='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+aaTag(u.name)+'</h3>';
   h+='<div class="popup-sub">UNIT #'+u._raw.id+' · '+(u.move==='飞行'?'AIR':'GROUND')+' · '+u.size+'</div>';
   h+='<div class="stat-grid">';
   for(var i=0;i<fields.length;i++){

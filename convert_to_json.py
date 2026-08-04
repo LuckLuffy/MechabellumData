@@ -7,7 +7,7 @@ from sheet_updater import load_workbook
 OUTPUT_PATH = os.path.join(ROOT_DIR, "frontend", "unit_data.json")
 
 # 地面单位但被"对空+速度快"规则误判为飞行的，强制标为地面
-GROUND_FORCE = {"台风"}
+GROUND_FORCE = {"台风", "野马", "先知"}
 
 
 def main(source_path=None):
