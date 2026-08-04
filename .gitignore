@@ -47,3 +47,6 @@ dist/cache/
 dist/outputs/
 dist/.env
 dist/*.xlsx
+
+# 本地私有文档（不推送 git）
+local/
