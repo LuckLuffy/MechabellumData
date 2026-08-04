@@ -1,12 +1,10 @@
-"""平衡性变更解析模块 — 关键词检测 + Claude API 结构化提取"""
+"""平衡性变更解析模块 — 关键词检测 + Deepseek（Anthropic 兼容端点）结构化提取"""
 import json
 import os
 import re
 import html as html_mod
-from config import COLUMN_MAP, CACHE_DIR
+from config import COLUMN_MAP, CACHE_DIR, DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
 
-# Anthropic API 配置
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 PARSED_DIR = os.path.join(CACHE_DIR, "parsed_posts")
 
 EXTRACTION_PROMPT = """从以下 Mechabellum 更新公告中，提取所有兵种数值变动。
@@ -70,22 +68,24 @@ def clean_html(html_str: str) -> str:
     return text
 
 
-def parse_with_claude(post: dict) -> list[dict]:
-    """使用 Claude API 解析公告中的数值变动"""
-    if not ANTHROPIC_API_KEY:
+def parse_changes(post: dict) -> list[dict]:
+    """使用 Deepseek（Anthropic 兼容端点）解析公告中的数值变动。"""
+    if not DEEPSEEK_API_KEY:
         return _parse_offline(post)
 
     try:
         import anthropic
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = anthropic.Anthropic(
+            api_key=DEEPSEEK_API_KEY,
+            base_url=DEEPSEEK_BASE_URL,
+        )
 
         text = clean_html(post["description"])
-        # 限制长度避免超出 token 限制
         if len(text) > 8000:
             text = text[:8000] + "\n...[truncated]"
 
         message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=DEEPSEEK_MODEL,
             max_tokens=1024,
             system="你是一个游戏数据分析助手。只返回有效的JSON数组。",
             messages=[{
@@ -95,7 +95,6 @@ def parse_with_claude(post: dict) -> list[dict]:
         )
 
         response_text = message.content[0].text.strip()
-        # 清理可能的 markdown 代码块
         response_text = re.sub(r'^```json?\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
 
@@ -104,12 +103,16 @@ def parse_with_claude(post: dict) -> list[dict]:
             if isinstance(changes, list):
                 return changes
         except json.JSONDecodeError:
-            print(f"[WARN] Claude 返回非JSON格式: {response_text[:200]}")
+            print(f"[WARN] Deepseek 返回非JSON格式: {response_text[:200]}")
 
     except Exception as e:
-        print(f"[ERROR] Claude API 调用失败: {e}")
+        print(f"[ERROR] Deepseek API 调用失败: {e}")
 
     return []
+
+
+# 旧名兼容
+parse_with_claude = parse_changes
 
 
 def _parse_offline(post: dict) -> list[dict]:
