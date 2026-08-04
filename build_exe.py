@@ -19,7 +19,7 @@ STAGING = os.path.join(ROOT, "build_staging")
 BASELINE = "钢铁指挥官兵种单位数据表7.29.xlsx"
 
 # ===== 版本号（每次发布新版本时递增，exe 名为 MechaMv{版本}.exe）=====
-VERSION = "1.0.1"
+VERSION = "1.0.3"
 EXE_NAME = f"MechaMv{VERSION}"
 
 # .env 模板（占位符，无真实 key）

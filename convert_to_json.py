@@ -6,6 +6,9 @@ from sheet_updater import load_workbook
 
 OUTPUT_PATH = os.path.join(ROOT_DIR, "frontend", "unit_data.json")
 
+# 地面单位但被"对空+速度快"规则误判为飞行的，强制标为地面
+GROUND_FORCE = {"台风"}
+
 
 def main(source_path=None):
     """把工作簿导出为 frontend/unit_data.json(.js)。
@@ -51,13 +54,17 @@ def main(source_path=None):
         else:
             unit["体型"] = "小型"
 
-        # 移动类型
-        speed = unit.get("移速", 0)
-        try:
-            speed = int(speed) if speed else 0
-        except (ValueError, TypeError):
-            speed = 0
-        unit["移动类型"] = "飞行" if unit.get("对空") and float(str(unit.get("对空", 0))) > 0.5 and speed > 8 else "地面"
+        # 移动类型（地面单位即使对空+速度快也不应标为飞行）
+        _name = str(unit.get("name", ""))
+        if _name in GROUND_FORCE:
+            unit["移动类型"] = "地面"
+        else:
+            speed = unit.get("移速", 0)
+            try:
+                speed = int(speed) if speed else 0
+            except (ValueError, TypeError):
+                speed = 0
+            unit["移动类型"] = "飞行" if unit.get("对空") and float(str(unit.get("对空", 0))) > 0.5 and speed > 8 else "地面"
 
         units.append(unit)
 
