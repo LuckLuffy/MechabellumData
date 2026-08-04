@@ -55,7 +55,9 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add -f cache/last_check.json cache/change_log.json outputs/ frontend/unit_data.json web/
+          git add -f cache/last_check.json outputs/ web/ frontend/unit_data.json
+          # change_log.json 仅在产生过平衡性更新后才存在，避免 git add 空路径报错(128)
+          [ -f cache/change_log.json ] && git add -f cache/change_log.json
           git diff --cached --quiet || git commit -m "chore: 每周平衡性数据更新 $(date +%F)"
           git push
 
