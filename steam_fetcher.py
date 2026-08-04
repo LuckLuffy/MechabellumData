@@ -71,6 +71,17 @@ def find_new_posts() -> list[dict]:
         return []
 
     last_guid = get_last_guid()
+
+    # 水位线为空 = 首次运行（全新目录/新安装）。
+    # 基准表即当前游戏状态，应把水位线直接设到最新公告，绝不回放历史公告——
+    # 否则会把旧版本（如 1.11x）的平衡性改动反向应用，导致数据回退到旧版本。
+    if not last_guid:
+        latest = items[0]
+        update_last_guid(latest["guid"], latest["title"], latest["pub_date"])
+        print(f"[INIT] 首次运行：水位线已设为最新公告「{latest['title']}」，"
+              f"基准表视为当前状态，不应用任何历史公告。")
+        return []
+
     new_posts = []
 
     # RSS 按时间倒序，遍历找到上次 guid 为止
