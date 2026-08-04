@@ -1,0 +1,7 @@
+# Netlify 配置 —— 国内可访问的镜像站
+# 用途：GitHub Pages 国内连不上时，用 Netlify 镜像同一份网页
+# 自动更新：Netlify 监听 GitHub 推送，每周 Actions 更新 web/ 后自动重新部署
+[build]
+  publish = "web"          # 发布目录：直接部署 web/ 静态站，无需构建命令
+
+# 无构建命令（web/ 已由 build_web.py 预生成）
