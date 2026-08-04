@@ -1,59 +1,92 @@
 # MechabellumData
 
-钢铁指挥官（[Mechabellum](https://store.steampowered.com/app/669330/)）兵种数据提取与监控项目。
+钢铁指挥官（[Mechabellum](https://store.steampowered.com/app/669330/)）兵种数据监控项目。
 
-## 项目状态
-
-| 模块 | 状态 | 说明 |
-|------|------|------|
-| 逆向分析 | ✅ | Il2CppDumper 完整提取类型结构、字段布局 |
-| 数据采集 | ✅ | 游戏内手动采集 36 个单位 v1.11 属性表 |
-| 平衡监控 | ✅ | Steam RSS 自动检测 + Claude API 解析 + 自动更新 xlsx |
-| 前端展示 | ✅ | 纯静态 HTML 数据表，排序/筛选/详情 |
-| 内存提取 | ⚠️ | 结构已确认，运行时定位未完成 |
+自动监控 Steam 平衡性公告 → Deepseek 解析数值变动 → 更新数据表 → 前端即时展示。
 
 ## 快速开始
 
 ```bash
-# 查看前端（双击打开）
-frontend/index.html
+# 安装依赖
+pip install -r requirements.txt
 
-# 检查平衡性更新
-python balance_monitor.py --test
+# 启动本地服务器（含后端启动自动检查 + 前端页面）
+python server.py
 
-# 初始化监控缓存
-python balance_monitor.py --init
+# 浏览器打开
+# http://localhost:8800
+```
+
+## 功能
+
+| 功能 | 说明 |
+|------|------|
+| **平衡性监控** | 轮询 [Steam RSS](https://store.steampowered.com/news/app/669330/) 检测新公告 |
+| **自动识别** | 关键词分类 + Deepseek（Anthropic 兼容端点）提取数值变动 |
+| **自动更新** | 变动应用到 xlsx 数据表 → 重建前端数据 → 记录变更日志 |
+| **触发方式** | 后端启动自动检查 + 前端「检查更新」按钮 |
+| **前端展示** | 36 单位数据表，排序/筛选/详情弹窗，变更状态条 |
+| **离线降级** | 无服务器时前端回退内嵌数据，双击 `frontend/index.html` 仍可用 |
+
+## 架构
+
+```
+Steam RSS ──► steam_fetcher ──► balance_monitor.run_check()
+                                        │
+                                        ▼
+                              change_parser (Deepseek)
+                                        │
+                                        ▼
+                              sheet_updater (xlsx 版本化累积)
+                                        │
+                                        ▼
+                              convert_to_json ──► frontend/unit_data.json
+                                        │
+                                        ▼
+server.py (端口 8800) ──► 前端「检查更新」按钮 + 30min 状态轮询
+```
+
+## API
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/` | GET | 前端页面 |
+| `/api/status` | GET | 上次检查、当前版本、有无新公告 |
+| `/api/data` | GET | 最新单位数据 JSON |
+| `/api/changelog` | GET | 平衡性变更历史 |
+| `/api/check` | POST | 触发一次完整检查（检测→解析→应用→重建） |
+
+## 配置
+
+`.env`（gitignored，不入库）：
+
+```
+DEEPSEEK_API_KEY=sk-...            # Deepseek API 密钥
+DEEPSEEK_BASE_URL=https://api.deepseek.com/anthropic
+DEEPSEEK_MODEL=deepseek-v4-flash
+SERVER_PORT=8800                   # 可选，默认 8800
 ```
 
 ## 文件结构
 
 ```
 MechabellumData/
-├── balance_monitor.py              # 平衡性监控主入口
-├── steam_fetcher.py                # Steam RSS 抓取 + 缓存
-├── change_parser.py                # Claude API 变更解析
-├── sheet_updater.py                # Excel 读写更新
-├── config.py                       # 配置常量
-├── convert_to_json.py              # xlsx → JSON 转换
-├── build_frontend.py               # 构建前端 HTML
-├── frontend/
-│   └── index.html                  # 兵种数据展示页（双击打开）
+├── server.py                   # 本地 HTTP 服务器 + API
+├── balance_monitor.py          # 检查管线 run_check()
+├── steam_fetcher.py            # Steam RSS 抓取 + 缓存
+├── change_parser.py            # Deepseek 变更解析
+├── sheet_updater.py            # Excel 读写 + 版本累积
+├── convert_to_json.py          # xlsx → 前端 JSON
+├── build_frontend.py           # 构建前端 HTML
+├── config.py                   # 配置 + .env 加载
+├── requirements.txt            # 依赖清单
+├── tests/                      # 26 个 unittest
+├── frontend/index.html         # 前端页面
 ├── 钢铁指挥官兵种单位数据表7.29.xlsx  # 基准数据表
-├── Mechabellum_Unit_Data.CT        # CE 作弊表
-├── 游戏原始数据解析.md              # 逆向分析完整文档
-├── 项目复盘.md                      # 全部方案记录 + 经验教训
-├── 操作指南.md                      # CE 操作指南
-└── 开发文档.txt                     # 对话记录
+├── 游戏原始数据解析.md          # 逆向分析文档
+├── 项目复盘.md                  # 方案尝试与经验
+└── 开发文档.txt                 # 对话记录
 ```
-
-## 文档
-
-| 文件 | 内容 |
-|------|------|
-| [游戏原始数据解析.md](./游戏原始数据解析.md) | 数据模型、单位 ID、存储位置、服务器 API |
-| [项目复盘.md](./项目复盘.md) | 6 种方案尝试、核心障碍、经验教训 |
-| [操作指南.md](./操作指南.md) | Cheat Engine 内存扫描操作 |
-| [开发文档.txt](./开发文档.txt) | 全部 10 轮对话记录 |
 
 ## 数据模型
 
@@ -67,7 +100,13 @@ MechData (战斗属性)          CardData (卡片数据)
 └─ moveType (enum)          └─ maintenanceSupply    ← 维护费
 
 引擎：Unity 2022.3 + IL2CPP + Addressables v1.22.3
-程序集：GRCore / GRClient / GRFight / ConfigDataProtocol
+解析：Deepseek (Anthropic 兼容端点) · deepseek-v4-flash
+```
+
+## 测试
+
+```bash
+python -m unittest discover tests   # 26 tests
 ```
 
 ## License
