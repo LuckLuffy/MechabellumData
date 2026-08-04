@@ -101,9 +101,9 @@ def start(port=None):
     def _startup_check():
         try:
             result = run_check()
-            print(f"[启动检查] {result['message']}")
+            print(f"[启动检查] {result['message']}", flush=True)
         except Exception as e:
-            print(f"[启动检查] 失败: {e}")
+            print(f"[启动检查] 失败: {e}", flush=True)
 
     threading.Thread(target=_startup_check, daemon=True).start()
     return _server
