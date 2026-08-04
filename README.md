@@ -158,6 +158,8 @@ MechData (战斗属性)          CardData (卡片数据)
 python -m unittest discover tests   # 28 tests
 ```
 
+欢迎各位指挥官提意见！
+
 ## License
 
 **MIT**
