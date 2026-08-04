@@ -3,6 +3,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
+from unittest import mock
+
 from change_parser import is_balance_update, parse_changes
 
 
@@ -19,6 +21,7 @@ class TestIsBalanceUpdate(unittest.TestCase):
 
 
 class TestParseOffline(unittest.TestCase):
+    @mock.patch("change_parser.DEEPSEEK_API_KEY", "")
     def test_no_key_returns_empty_and_saves(self):
         # 不设 key 时走离线模式：返回 [] 且写文件
         post = {"news_id": "test123", "title": "t", "pub_date": "d",

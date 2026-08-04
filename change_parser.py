@@ -94,7 +94,10 @@ def parse_changes(post: dict) -> list[dict]:
             }]
         )
 
-        response_text = message.content[0].text.strip()
+        response_text = "".join(
+            getattr(block, "text", "") or ""
+            for block in message.content
+        ).strip()
         response_text = re.sub(r'^```json?\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
 
