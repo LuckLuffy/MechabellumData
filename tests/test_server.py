@@ -15,11 +15,21 @@ import server
 class TestServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        import os as _os
+        import json as _json
+        # 保存原始缓存字节，测试结束后恢复，避免污染真实缓存
+        cls._cache_path = _os.path.join(
+            _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+            "cache", "last_check.json",
+        )
+        cls._orig_cache = None
+        if _os.path.exists(cls._cache_path):
+            with open(cls._cache_path, "rb") as _f:
+                cls._orig_cache = _f.read()
         # 预置已知缓存，让 last_title 确定性
-        cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cache")
-        os.makedirs(cache_dir, exist_ok=True)
-        with open(os.path.join(cache_dir, "last_check.json"), "w", encoding="utf-8") as f:
-            json.dump({"last_guid": "g", "last_title": "TEST", "last_date": "d"}, f)
+        _os.makedirs(_os.path.dirname(cls._cache_path), exist_ok=True)
+        with open(cls._cache_path, "w", encoding="utf-8") as _f:
+            _json.dump({"last_guid": "g", "last_title": "TEST", "last_date": "d"}, _f)
         # 阻断 Steam RSS 网络调用，让 has_new 确定性
         cls._patch = mock.patch("server.find_new_posts", return_value=[])
         cls._patch.start()
@@ -30,6 +40,12 @@ class TestServer(unittest.TestCase):
     def tearDownClass(cls):
         cls._patch.stop()
         server.stop()
+        # 恢复原始缓存；若原本不存在则删除测试桩
+        if cls._orig_cache is not None:
+            with open(cls._cache_path, "wb") as _f:
+                _f.write(cls._orig_cache)
+        elif os.path.exists(cls._cache_path):
+            os.remove(cls._cache_path)
 
     def test_home(self):
         with urllib.request.urlopen("http://127.0.0.1:8900/") as r:
