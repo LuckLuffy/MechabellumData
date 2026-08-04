@@ -7,7 +7,7 @@
 用法：
   python build_exe.py
 
-产出：dist/MechabellumMonitor.exe
+产出：dist/{EXE_NAME}.exe（VERSION 在文件顶部修改）
 """
 import os
 import shutil
@@ -17,6 +17,10 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STAGING = os.path.join(ROOT, "build_staging")
 BASELINE = "钢铁指挥官兵种单位数据表7.29.xlsx"
+
+# ===== 版本号（每次发布新版本时递增，exe 名为 MechaMv{版本}.exe）=====
+VERSION = "1.0.1"
+EXE_NAME = f"MechaMv{VERSION}"
 
 # .env 模板（占位符，无真实 key）
 ENV_TEMPLATE = """# ============================================
@@ -34,7 +38,7 @@ DEEPSEEK_MODEL=deepseek-v4-flash
 
 def main():
     print("=" * 60)
-    print("构建 MechabellumMonitor.exe")
+    print(f"构建 {EXE_NAME}.exe")
     print("=" * 60)
 
     # 1. 准备暂存目录（含内置资源）
@@ -56,11 +60,13 @@ def main():
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean",
         "--onefile",
-        "--name", "MechabellumMonitor",
+        "--name", EXE_NAME,
         "--add-data", f"{os.path.join(ROOT, 'frontend')};frontend",
         "--add-data", f"{os.path.join(ROOT, BASELINE)};.",
         "--add-data", f"{env_default};.",
         "--hidden-import", "anthropic",
+        # openpyxl 会条件导入 numpy（仅数组公式用），本项目用不到，排除以显著缩小体积
+        "--exclude-module", "numpy",
         os.path.join(ROOT, "app.py"),
     ]
     # 若存在 upx.exe 则启用 UPX 压缩（可显著缩小体积）
@@ -79,7 +85,7 @@ def main():
         print("[FAIL] PyInstaller 构建失败")
         sys.exit(1)
 
-    exe = os.path.join(ROOT, "dist", "MechabellumMonitor.exe")
+    exe = os.path.join(ROOT, "dist", f"{EXE_NAME}.exe")
     if os.path.exists(exe):
         size_mb = os.path.getsize(exe) / 1024 / 1024
         print(f"\n[OK] 构建完成: {exe}")

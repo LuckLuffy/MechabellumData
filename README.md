@@ -8,10 +8,10 @@
 
 ## 下载使用（免命令行）
 
-**`dist/MechabellumMonitor.exe`**（Windows x64，单文件，约 46MB）
+**`dist/MechaMv1.0.1.exe`**（Windows x64，单文件，约 30MB）
 
 ```
-1. 下载 MechabellumMonitor.exe
+1. 下载 MechaMv1.0.1.exe
 2. 双击运行 —— 弹出配置窗口，填入你的 Deepseek API Key
      （申请：https://platform.deepseek.com）
 3. 点「保存」→ 自动打开浏览器 http://localhost:8800
@@ -105,7 +105,7 @@ SERVER_PORT=8800                   # 可选，默认 8800
 
 ```
 MechabellumData/
-├── dist/MechabellumMonitor.exe # Windows x64 免安装版（供下载）
+├── dist/MechaMv1.0.1.exe      # Windows x64 免安装版（供下载）
 ├── app.py                      # exe 入口（资源引导 + 启动 + 开浏览器）
 ├── build_exe.py                # PyInstaller 打包脚本（不嵌 key）
 ├── server.py                   # 本地 HTTP 服务器 + API
@@ -147,3 +147,9 @@ python -m unittest discover tests   # 26 tests
 ## License
 
 **MIT**
+
+---
+
+⭐ **求求点个小星星，谢谢各位指挥官！** ⭐
+
+如果这个工具帮到了你，欢迎给仓库点个 Star，支持后续持续更新（新版本、新兵种、平衡性自动同步）。
