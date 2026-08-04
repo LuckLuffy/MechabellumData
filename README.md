@@ -15,7 +15,7 @@
 | 渠道 | 说明 |
 |------|------|
 | **GitHub Release** | [点此前往 Release 下载](https://github.com/LuckLuffy/MechabellumData/releases) |
-| **某度网盘** | [MechaMv1.0.1.exe](https://pan.baidu.com/s/1Uh4TK22pMv1Z5QdqvBaMBQ?pwd=c8vb) · 提取码 `c8vb` |
+| **某度网盘** | [MechaMv1.0.2.exe](https://pan.baidu.com/s/1Uh4TK22pMv1Z5QdqvBaMBQ?pwd=c8vb) · 提取码 `c8vb` |
 
 ```
 1. 下载 MechaMv1.0.1.exe
