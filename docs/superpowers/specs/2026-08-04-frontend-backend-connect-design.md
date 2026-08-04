@@ -15,7 +15,7 @@ MechabellumData 项目已有：
 
 | 决策 | 值 |
 |------|-----|
-| 触发方式 | 前端「检查更新」按钮 + 每 30 分钟自动轮询 |
+| 触发方式 | 前端「检查更新」按钮 + 自动轮询（① 后端启动时 ② 每 30 天） |
 | 变更解析 | Deepseek API（Anthropic 兼容端点） |
 | 模型 | `deepseek-v4-flash` |
 | base_url | `https://api.deepseek.com/anthropic` |
@@ -90,7 +90,7 @@ server.py  (Python 标准库 http.server, 端口 8800)
 ### 6. `frontend/index.html`（修改，经 build_frontend.py 生成）
 - 工具栏加「检查更新」按钮
 - 加状态条：上次检查时间、当前版本、新公告数量
-- `setInterval` 每 30 分钟轮询 `/api/status`，有新公告时提示
+- `setInterval` 每 30 分钟轮询 `/api/status` 仅刷新状态显示（不触发检查）；检查本身由后端启动时 + 每 30 天定时器 + 前端按钮触发
 - 数据源：优先 `fetch('/api/data')`（服务器模式）；请求失败时**降级回内嵌数据**（保留离线双击可用性）
 - 变更记录页：优先 `/api/changelog`，失败时静默隐藏该标签
 
@@ -111,10 +111,12 @@ server.py  (Python 标准库 http.server, 端口 8800)
 
 ### 自动轮询
 ```
-每 30 分钟
-  → GET /api/status
-  → has_new=true 时 → 自动 POST /api/check
-  → 或仅提示用户有更新
+① 后端启动时
+  → 自动执行一次 POST /api/check
+
+② 每 30 天（未来扩展，当前阶段不实现）
+  → 预留定时器接口，架构上可平滑接入
+  → 当前阶段仅实现：后端启动检查 + 前端手动按钮
 ```
 
 ## 错误处理
@@ -141,3 +143,4 @@ server.py  (Python 标准库 http.server, 端口 8800)
 - 不做数据库持久化（沿用 xlsx + JSON 文件）
 - 不做部署到公网（纯本地）
 - 不做前端历史版本对比图（暂只显示当前数据 + 变更记录文本）
+- 不做 30 天定时轮询（当前阶段；预留接口，未来扩展）
