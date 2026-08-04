@@ -154,7 +154,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="brand-mark">&#9670;</div>
       <div>
         <h1><em>MECHABELLUM</em> 兵种数据</h1>
-        <div class="sub">STEEL COMMANDER · UNIT DATA</div>
+        <div class="sub">钢铁指挥官 · 兵种数据</div>
       </div>
     </div>
     <nav class="tabs">
@@ -192,6 +192,9 @@ tbody tr:last-child td{border-bottom:none}
           <th data-sort="cost" class="num">造价</th><th data-sort="hp" class="num">血量</th>
           <th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击</th>
           <th data-sort="splash" class="num">溅射</th><th data-sort="interval" class="num">间隔</th>
+          <th data-sort="dps" class="num">DPS</th>
+          <th data-sort="dps_ratio" class="num">输出性价比</th>
+          <th data-sort="hp_ratio" class="num">血量性价比</th>
           <th data-sort="range" class="num">射程</th><th data-sort="count" class="num">数量</th>
           <th data-sort="slots" class="num">格子</th><th data-sort="unlock" class="num">解锁</th>
         </tr></thead>
@@ -224,18 +227,27 @@ tbody tr:last-child td{border-bottom:none}
 <script>
 var RAW = ''' + data_json + ''';
 
-var UNITS = RAW.map(function(u){ return {
-  name: u.name, size: u["体型"], move: u["移动类型"],
-  cost: +u["造价"]||0, hp: +u["单体血量"]||0, speed: +u["移速"]||0,
-  atk: +u["单次攻击"]||0, splash: +u["溅射范围"]||0, interval: +u["攻击间隔"]||0,
-  range: +u["射程"]||0, count: +u["数量"]||0, slots: +u["占用格子"]||0,
-  unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
-  _raw: u
-}});
+var UNITS = RAW.map(function(u){
+  var cost = +u["造价"]||0, hp = +u["单体血量"]||0;
+  var atk = +u["单次攻击"]||0, interval = +u["攻击间隔"]||0;
+  var dps = interval > 0 ? atk / interval : 0;          // 攻击 / 间隔
+  return {
+    name: u.name, size: u["体型"], move: u["移动类型"],
+    cost: cost, hp: hp, speed: +u["移速"]||0, atk: atk,
+    splash: +u["溅射范围"]||0, interval: interval,
+    range: +u["射程"]||0, count: +u["数量"]||0, slots: +u["占用格子"]||0,
+    unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
+    dps: dps,
+    dps_ratio: cost > 0 ? dps / cost : 0,               // DPS / 造价
+    hp_ratio: cost > 0 ? hp / cost : 0,                 // 血量 / 造价
+    _raw: u
+  };
+});
 
 var sortField = 'cost', sortDesc = false;
 
 function fmt(v){ return v==null||isNaN(v)?'-':Number.isInteger(v)?v.toLocaleString():v }
+function fmt2(v){ return (v==null||isNaN(v)) ? '-' : v.toFixed(2) }
 function sizeTag(s){ return '<span class="tag '+(s==='巨型'?'giant':s==='中型'?'medium':'small')+'">'+s+'</span>' }
 function flyTag(){ return '<span class="tag fly">飞行</span>' }
 
@@ -268,6 +280,9 @@ function renderTable(){
     html+='<td class="num atk">'+fmt(u.atk)+'</td>';
     html+='<td class="num">'+fmt(u.splash)+'</td>';
     html+='<td class="num">'+fmt(u.interval)+'</td>';
+    html+='<td class="num">'+fmt2(u.dps)+'</td>';
+    html+='<td class="num">'+fmt2(u.dps_ratio)+'</td>';
+    html+='<td class="num">'+fmt2(u.hp_ratio)+'</td>';
     html+='<td class="num">'+fmt(u.range)+'</td>';
     html+='<td class="num">'+fmt(u.count)+'</td>';
     html+='<td class="num">'+fmt(u.slots)+'</td>';
