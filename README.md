@@ -4,6 +4,10 @@
 
 自动监控 Steam 平衡性公告 → Deepseek 解析数值变动 → 更新数据表 → 前端即时展示。
 
+指导老师 @流影
+
+https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click
+
 ## 下载使用（免命令行）
 
 **`dist/MechabellumMonitor.exe`**（Windows x64，单文件，约 46MB）
@@ -20,6 +24,21 @@
 > 首次运行（或 Key 缺失时）自动弹窗填写；点「跳过」可暂不配置，仅检测公告并保存到 `cache/parsed_posts/`，下次启动仍会提示。
 
 重新打包：`python build_exe.py`（需先 `pip install pyinstaller`）。
+
+### 不想注册 AI？直接下载前端页面
+
+如果只是想查看兵种数据、不想申请 Deepseek API Key，直接下载最新的
+[`frontend/index.html`](frontend/index.html) 即可：
+
+```
+1. 下载 index.html
+2. 双击用浏览器打开
+3. 无需服务器、无需注册、无需联网 —— 离线查看全部 36 个单位数据
+   （含 DPS、爆发峰值、性价比等列，支持排序/筛选/详情）
+```
+
+> 这是纯静态数据页，数据已内嵌。区别是：静态页只能看当前数据，
+> exe + AI 才能自动监控 Steam 公告并实时更新数据表。
 
 ## 从源码运行（开发）
 
@@ -131,4 +150,8 @@ python -m unittest discover tests   # 26 tests
 
 ## License
 
-MIT
+**MIT** —— 宽松的开源许可证。你可以自由地使用、修改、复制、分发本项目的代码
+（包括商用），只需在分发时保留版权声明即可。项目按"原样"提供，作者不承担任何
+使用造成的责任。
+
+> 简单说：随便用，标明出处即可。
