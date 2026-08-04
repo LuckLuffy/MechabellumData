@@ -1,8 +1,21 @@
 """Mechabellum 平衡性监控系统 - 配置文件"""
 import os
+import sys
+
+
+def _get_root_dir():
+    """解析项目根目录。
+
+    PyInstaller 冻结时 __file__ 指向临时解压目录，须用 exe 所在目录作为
+    可写的数据根目录（缓存/输出/前端资源都落在 exe 旁）。
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
 
 # 项目根目录
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = _get_root_dir()
 
 
 def _load_env():

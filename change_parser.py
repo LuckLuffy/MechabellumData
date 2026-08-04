@@ -68,6 +68,17 @@ def clean_html(html_str: str) -> str:
     return text
 
 
+def api_key_configured() -> bool:
+    """判断 Deepseek API key 是否已真正配置（排除空值与模板占位符）。"""
+    key = (DEEPSEEK_API_KEY or "").strip()
+    if not key:
+        return False
+    lowered = key.lower()
+    if any(t in lowered for t in ("在此填入", "replace", "yourkey", "your_key", "xxx", "sk-这里")):
+        return False
+    return True
+
+
 def parse_changes(post: dict):
     """使用 Deepseek（Anthropic 兼容端点）解析公告中的数值变动。
 
@@ -77,7 +88,7 @@ def parse_changes(post: dict):
         成功解析”，不要把该帖标记为已处理，以便下次重试。离线模式（未配置
         DEEPSEEK_API_KEY）仍返回 []，此时公告已落盘待手动分析。
     """
-    if not DEEPSEEK_API_KEY:
+    if not api_key_configured():
         return _parse_offline(post)
 
     try:

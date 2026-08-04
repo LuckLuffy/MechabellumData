@@ -35,3 +35,8 @@ outputs/
 /tmp/
 headers_output.txt
 all_data.txt
+
+# PyInstaller 构建中间产物
+build/
+build_staging/
+*.spec

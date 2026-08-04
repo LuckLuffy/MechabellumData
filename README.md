@@ -4,7 +4,25 @@
 
 自动监控 Steam 平衡性公告 → Deepseek 解析数值变动 → 更新数据表 → 前端即时展示。
 
-## 快速开始
+## 下载使用（免命令行）
+
+**`dist/MechabellumMonitor.exe`**（Windows x64，单文件，约 43MB）
+
+```
+1. 下载 MechabellumMonitor.exe
+2. 双击运行 —— 自动打开浏览器 http://localhost:8800
+3. 首次运行会在 exe 旁生成 .env 模板
+4. 用文本编辑器打开 .env，填入你自己的 Deepseek API Key：
+     DEEPSEEK_API_KEY=sk-你的Key     ← 申请：https://platform.deepseek.com
+5. 保存后，在网页点「检查更新」即可自动解析平衡性公告
+```
+
+> 程序不内置任何 API Key —— 你的 Key 只存在你自己电脑的 `.env` 里，不公开。
+> 未填 Key 时仍能检测公告并保存到 `cache/parsed_posts/` 供查看，只是不自动解析。
+
+重新打包：`python build_exe.py`（需先 `pip install pyinstaller`）。
+
+## 从源码运行（开发）
 
 ```bash
 # 安装依赖
@@ -71,6 +89,9 @@ SERVER_PORT=8800                   # 可选，默认 8800
 
 ```
 MechabellumData/
+├── dist/MechabellumMonitor.exe # Windows x64 免安装版（供下载）
+├── app.py                      # exe 入口（资源引导 + 启动 + 开浏览器）
+├── build_exe.py                # PyInstaller 打包脚本（不嵌 key）
 ├── server.py                   # 本地 HTTP 服务器 + API
 ├── balance_monitor.py          # 检查管线 run_check()
 ├── steam_fetcher.py            # Steam RSS 抓取 + 缓存
@@ -78,7 +99,7 @@ MechabellumData/
 ├── sheet_updater.py            # Excel 读写 + 版本累积
 ├── convert_to_json.py          # xlsx → 前端 JSON
 ├── build_frontend.py           # 构建前端 HTML
-├── config.py                   # 配置 + .env 加载
+├── config.py                   # 配置 + .env 加载（支持冻结路径）
 ├── requirements.txt            # 依赖清单
 ├── tests/                      # 26 个 unittest
 ├── frontend/index.html         # 前端页面

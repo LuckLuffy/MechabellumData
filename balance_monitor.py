@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import BALANCE_KEYWORDS
 from steam_fetcher import find_new_posts, get_latest_version, update_last_guid, fetch_rss
-from change_parser import is_balance_update, parse_changes, format_changes_for_display
+from change_parser import is_balance_update, parse_changes, api_key_configured, format_changes_for_display
 from sheet_updater import (
     load_workbook, apply_change, save_new_sheet, log_changes, copy_baseline
 )
@@ -151,10 +151,16 @@ def _run_check_locked() -> dict:
         last = posts[-1]
         update_last_guid(last["guid"], last["title"], last["pub_date"])
 
-    result["message"] = (
-        f"应用 {result['applied']} 条变动至版本 {latest_version}。"
-        if result["applied"] else "无平衡性数值变动需要更新。"
-    )
+    if not api_key_configured():
+        result["message"] = (
+            "检测到平衡性公告，但未配置 Deepseek API Key。"
+            "请在程序目录的 .env 文件中填写 DEEPSEEK_API_KEY 后重试。"
+            "公告已保存到 cache/parsed_posts/ 供手动分析。"
+        )
+    elif result["applied"]:
+        result["message"] = f"应用 {result['applied']} 条变动至版本 {latest_version}。"
+    else:
+        result["message"] = "无平衡性数值变动需要更新。"
     return result
 
 
