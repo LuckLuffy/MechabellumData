@@ -6,12 +6,12 @@
 
 指导老师：[**@流影**](https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click)
 
-## 🌐 在线查看（免费网页）
+## 🌐 在线查看
 
 **https://LuckLuffy.github.io/MechabellumData/**
 
 - 免 API Key、免安装、直接看数据
-- 每周一自动更新（GitHub Actions 定时检测 Steam 公告 + Deepseek 解析）
+- 每周一自动更新
 - 数据更新时网页自动热更新，无需手动部署
 
 ## 下载使用
