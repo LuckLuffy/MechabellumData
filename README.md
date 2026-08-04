@@ -6,13 +6,15 @@
 
 指导老师：[**@流影**](https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click)
 
-## 🌐 在线查看
+## 🌐 在线查看（免 API Key）
 
-**https://LuckLuffy.github.io/MechabellumData/**
+**国内访问（推荐）：** https://mechabellumdata.netlify.app/
+
+**国际备份：** https://LuckLuffy.github.io/MechabellumData/
 
 - 免 API Key、免安装、直接看数据
-- 每周一自动更新
-- 数据更新时网页自动热更新，无需手动部署
+- 每周一自动更新，数据更新时网页自动热更新
+- 双站同步：Netlify（国内友好）+ GitHub Pages（国际）
 
 ## 下载使用
 
@@ -132,7 +134,8 @@ MechabellumData/
 ├── tests/                      # 28 个 unittest
 ├── .github/workflows/update.yml # 每周 AI agent（自动更新+部署 Pages）
 ├── frontend/index.html         # exe 内嵌前端（含服务器按钮）
-├── web/                        # 网页版静态站（GitHub Pages 部署）
+├── web/                        # 网页版静态站（GitHub Pages + Netlify 双部署）
+├── netlify.toml                # Netlify 镜像配置（发布 web/）
 ├── 钢铁指挥官兵种单位数据表7.29.xlsx  # 基准数据表
 └── local/                      # 本地私有文档（开发文档/操作指南/解析/复盘，不推送）
 ```
