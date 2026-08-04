@@ -18,15 +18,10 @@
 
 **Windows x64 免安装版**
 
-📥 下载渠道：
-
-| 渠道 | 说明 |
-|------|------|
-| **GitHub Release** | [点此前往 Release 下载](https://github.com/LuckLuffy/MechabellumData/releases) |
-| **某度网盘** | [MechaMv1.0.2.exe](https://pan.baidu.com/s/1Uh4TK22pMv1Z5QdqvBaMBQ?pwd=c8vb) · 提取码 `c8vb` |
+📥 下载：[**GitHub Release**](https://github.com/LuckLuffy/MechabellumData/releases)
 
 ```
-1. 下载 MechaMv1.0.1.exe
+1. 下载 MechaMv1.0.3.exe
 2. 双击运行 —— 弹出配置窗口，填入你的 Deepseek API Key
      （申请：https://platform.deepseek.com）
 3. 点「保存」→ 自动打开浏览器 http://localhost:8800
@@ -121,7 +116,7 @@ SERVER_PORT=8800                   # 可选，默认 8800
 
 ```
 MechabellumData/
-├── dist/MechaMv1.0.1.exe      # Windows x64 免安装版（供下载）
+├── dist/MechaMv1.0.3.exe      # Windows x64 免安装版（供下载）
 ├── app.py                      # exe 入口（资源引导 + 启动 + 开浏览器）
 ├── build_exe.py                # PyInstaller 打包脚本（不嵌 key）
 ├── server.py                   # 本地 HTTP 服务器 + API
@@ -160,7 +155,7 @@ MechData (战斗属性)          CardData (卡片数据)
 ## 测试
 
 ```bash
-python -m unittest discover tests   # 26 tests
+python -m unittest discover tests   # 28 tests
 ```
 
 ## License
