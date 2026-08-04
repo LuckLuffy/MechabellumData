@@ -190,9 +190,12 @@ tbody tr:last-child td{border-bottom:none}
         <thead><tr>
           <th data-sort="name">兵种</th><th data-sort="size">体型</th>
           <th data-sort="cost" class="num">造价</th><th data-sort="hp" class="num">血量</th>
+          <th data-sort="total_hp" class="num">总血量</th>
           <th data-sort="speed" class="num">移速</th><th data-sort="atk" class="num">攻击</th>
+          <th data-sort="burst" class="num">爆发峰值</th>
           <th data-sort="splash" class="num">溅射</th><th data-sort="interval" class="num">间隔</th>
           <th data-sort="dps" class="num">DPS</th>
+          <th data-sort="total_dps" class="num">总DPS</th>
           <th data-sort="dps_ratio" class="num">输出性价比</th>
           <th data-sort="hp_ratio" class="num">血量性价比</th>
           <th data-sort="range" class="num">射程</th><th data-sort="count" class="num">数量</th>
@@ -227,22 +230,31 @@ tbody tr:last-child td{border-bottom:none}
 <script>
 var RAW = ''' + data_json + ''';
 
-var UNITS = RAW.map(function(u){
+// 统一映射函数：内嵌 RAW 与服务器 /api/data 两条路径共用，避免字段漂移
+function makeUnit(u){
   var cost = +u["造价"]||0, hp = +u["单体血量"]||0;
   var atk = +u["单次攻击"]||0, interval = +u["攻击间隔"]||0;
-  var dps = interval > 0 ? atk / interval : 0;          // 攻击 / 间隔
+  var count = +u["数量"]||0;
+  var dps = interval > 0 ? atk / interval : 0;          // DPS = 攻击 / 间隔
+  var burst = atk * count;                              // 爆发峰值 = 攻击 * 数量
+  var total_dps = interval > 0 ? burst / interval : 0;  // 总DPS = 爆发峰值 / 间隔
+  var total_hp = hp * count;                            // 总血量 = 血量 * 数量
   return {
     name: u.name, size: u["体型"], move: u["移动类型"],
     cost: cost, hp: hp, speed: +u["移速"]||0, atk: atk,
     splash: +u["溅射范围"]||0, interval: interval,
-    range: +u["射程"]||0, count: +u["数量"]||0, slots: +u["占用格子"]||0,
+    range: +u["射程"]||0, count: count, slots: +u["占用格子"]||0,
     unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
     dps: dps,
-    dps_ratio: cost > 0 ? dps / cost : 0,               // DPS / 造价
-    hp_ratio: cost > 0 ? hp / cost : 0,                 // 血量 / 造价
+    burst: burst,
+    total_dps: total_dps,
+    total_hp: total_hp,
+    dps_ratio: cost > 0 ? dps / cost : 0,               // 输出性价比 = DPS / 造价
+    hp_ratio: cost > 0 ? hp / cost : 0,                 // 血量性价比 = 血量 / 造价
     _raw: u
   };
-});
+}
+var UNITS = RAW.map(makeUnit);
 
 var sortField = 'cost', sortDesc = false;
 
@@ -276,11 +288,14 @@ function renderTable(){
     html+='<td>'+u.size+'</td>';
     html+='<td class="num cost">'+fmt(u.cost)+'</td>';
     html+='<td class="num hp">'+fmt(u.hp)+'</td>';
+    html+='<td class="num hp">'+fmt(u.total_hp)+'</td>';
     html+='<td class="num spd">'+fmt(u.speed)+'</td>';
     html+='<td class="num atk">'+fmt(u.atk)+'</td>';
+    html+='<td class="num atk">'+fmt(u.burst)+'</td>';
     html+='<td class="num">'+fmt(u.splash)+'</td>';
     html+='<td class="num">'+fmt(u.interval)+'</td>';
     html+='<td class="num">'+fmt2(u.dps)+'</td>';
+    html+='<td class="num">'+fmt2(u.total_dps)+'</td>';
     html+='<td class="num">'+fmt2(u.dps_ratio)+'</td>';
     html+='<td class="num">'+fmt2(u.hp_ratio)+'</td>';
     html+='<td class="num">'+fmt(u.range)+'</td>';
@@ -397,14 +412,7 @@ function setStatus(text, cls){
 function refreshData(){
   api('/api/data').then(function(d){
     if(d && d.length){
-      UNITS = d.map(function(u){ return {
-        name:u.name, size:u["体型"], move:u["移动类型"],
-        cost:+u["造价"]||0, hp:+u["单体血量"]||0, speed:+u["移速"]||0,
-        atk:+u["单次攻击"]||0, splash:+u["溅射范围"]||0, interval:+u["攻击间隔"]||0,
-        range:+u["射程"]||0, count:+u["数量"]||0, slots:+u["占用格子"]||0,
-        unlock:isNaN(+u["解锁费用"])?u["解锁费用"]:(+u["解锁费用"]||0),
-        _raw:u
-      }});
+      UNITS = d.map(makeUnit);
       renderTable(); renderCards();
     }
   }).catch(function(){ /* 离线：保留内嵌 RAW 数据 */ });
