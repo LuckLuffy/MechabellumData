@@ -40,3 +40,10 @@ all_data.txt
 build/
 build_staging/
 *.spec
+
+# exe 就地运行产生的数据（应位于 exe 旁，不入库）
+dist/frontend/
+dist/cache/
+dist/outputs/
+dist/.env
+dist/*.xlsx
