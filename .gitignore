@@ -26,9 +26,10 @@ __pycache__/
 # 密钥和本地配置（不提交）
 .env
 
-# 监控系统缓存和输出
-cache/
-outputs/
+# 监控系统缓存（parsed_posts 离线解析产物不入库）
+cache/parsed_posts/
+# 注意：cache/last_check.json、cache/change_log.json、outputs/ 需入库，
+# 供 GitHub Actions 每周增量监控使用（勿整目录忽略）
 
 # 临时文件
 *.tmp

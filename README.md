@@ -6,6 +6,14 @@
 
 指导老师：[**@流影**](https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click)
 
+## 🌐 在线查看（免费网页）
+
+**https://LuckLuffy.github.io/MechabellumData/**
+
+- 免 API Key、免安装、直接看数据
+- 每周一自动更新（GitHub Actions 定时检测 Steam 公告 + Deepseek 解析）
+- 数据更新时网页自动热更新，无需手动部署
+
 ## 下载使用
 
 **Windows x64 免安装版**
@@ -122,11 +130,14 @@ MechabellumData/
 ├── change_parser.py            # Deepseek 变更解析
 ├── sheet_updater.py            # Excel 读写 + 版本累积
 ├── convert_to_json.py          # xlsx → 前端 JSON
-├── build_frontend.py           # 构建前端 HTML
+├── build_frontend.py           # 构建前端 HTML（local/web 双模式）
+├── build_web.py                # 构建网页版静态站（web/）
 ├── config.py                   # 配置 + .env 加载（支持冻结路径）
 ├── requirements.txt            # 依赖清单
-├── tests/                      # 26 个 unittest
-├── frontend/index.html         # 前端页面
+├── tests/                      # 28 个 unittest
+├── .github/workflows/update.yml # 每周 AI agent（自动更新+部署 Pages）
+├── frontend/index.html         # exe 内嵌前端（含服务器按钮）
+├── web/                        # 网页版静态站（GitHub Pages 部署）
 ├── 钢铁指挥官兵种单位数据表7.29.xlsx  # 基准数据表
 └── local/                      # 本地私有文档（开发文档/操作指南/解析/复盘，不推送）
 ```

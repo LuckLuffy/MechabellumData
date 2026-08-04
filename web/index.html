@@ -153,7 +153,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="tab" data-tab="cards">卡片</div>
       <div class="tab" data-tab="about">关于</div>
     </nav>
-    <button id="checkBtn" class="check-btn">&#9881; 检查更新</button>
+    
   </div>
   <div class="filters" id="filters-table">
     <input type="text" id="search" placeholder="搜索兵种..." oninput="renderTable()">
@@ -171,7 +171,7 @@ tbody tr:last-child td{border-bottom:none}
       <option value="">全部体型</option><option value="超巨型">超巨型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
     </select>
   </div>
-  <div class="statusbar" id="statusBar">初始化中…</div>
+  <div class="web-banner">&#128197; 数据更新于 2026-08-04 20:37 · 每周自动更新</div>
 </header><main>
   <div id="tab-table">
     <div class="table-wrap">
@@ -386,50 +386,9 @@ document.addEventListener('click',function(e){
   if(el) showDetail(el.getAttribute('data-unit'));
 });
 
-/* ===== API 数据源（仅本地服务器版） ===== */
-function api(url, opts){
-  return fetch(url, opts).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
-}
-function setStatus(text, cls){
-  var el=document.getElementById('statusBar');
-  el.innerHTML='<span class="'+ (cls||'') +'">'+text+'</span>';
-}
-function refreshData(){
-  api('/api/data').then(function(d){
-    if(d && d.length){
-      UNITS = d.map(makeUnit);
-      renderTable(); renderCards();
-    }
-  }).catch(function(){ /* 离线：保留内嵌 RAW 数据 */ });
-}
-function refreshStatus(){
-  api('/api/status').then(function(s){
-    var parts=['上次检查: '+(s.last_title||'无')];
-    if(s.has_new) parts.push('<span class="warn">有新公告，点「检查更新」</span>');
-    setStatus(parts.join(' · '));
-  }).catch(function(){ setStatus('服务器未连接 · 离线模式','warn'); });
-}
-document.getElementById('checkBtn').addEventListener('click', function(){
-  var btn=document.getElementById('checkBtn');
-  btn.disabled=true; setStatus('检查中…','warn');
-  fetch('/api/check',{method:'POST'}).then(function(r){return r.json();})
-    .then(function(res){
-      if(res.ok){
-        setStatus('['+(res.version||'?')+'] '+res.message, res.applied>0?'ok':'');
-        refreshData();
-      } else {
-        setStatus('检查失败: '+(res.error||'未知错误'),'err');
-      }
-    }).catch(function(){ setStatus('检查失败: 无法连接服务器','err'); })
-    .finally(function(){ btn.disabled=false; });
-});
-// 每 30 分钟刷新一次状态显示（不触发检查）
-setInterval(refreshStatus, 30*60*1000);
-refreshStatus();
-
-/* ===== 初始化 ===== */
+/* ===== 初始化（静态网页版：直接渲染内嵌数据） ===== */
 renderTable();
-refreshData();
+renderCards();
 </script>
 </body>
 </html>

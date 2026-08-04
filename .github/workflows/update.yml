@@ -1,0 +1,67 @@
+# 每周平衡性数据自动更新 —— 免费 AI agent
+#
+# 每周一 03:00 UTC（北京时间 11:00）自动：
+#   1. 检测 Steam 新公告（增量，基于仓库内 cache/last_check.json）
+#   2. Deepseek 解析平衡性变动（key 从仓库 Secrets 读取，不对玩家公开）
+#   3. 应用变更 → 更新数据 → 重建网页版
+#   4. 提交增量状态（数据/日志/版本）入库
+#   5. 部署 GitHub Pages
+#
+# 也可在 Actions 页手动 "Run workflow" 触发。
+#
+# 一次性设置（首次）：
+#   1. 仓库 Settings → Secrets → Actions → 新增 DEEPSEEK_API_KEY
+#   2. 仓库 Settings → Pages → Source 选择 "GitHub Actions"
+
+name: 每周更新数据
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'   # 每周一 03:00 UTC = 北京时间 11:00
+  workflow_dispatch:      # 支持手动触发
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 检查并更新平衡性数据
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          PYTHONIOENCODING: utf-8
+        run: python balance_monitor.py
+
+      - name: 构建网页版
+        run: python build_web.py
+
+      - name: 提交数据更新（增量状态入库）
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -f cache/last_check.json cache/change_log.json outputs/ frontend/unit_data.json web/
+          git diff --cached --quiet || git commit -m "chore: 每周平衡性数据更新 $(date +%F)"
+          git push
+
+      - name: 部署 GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - uses: actions/deploy-pages@v4

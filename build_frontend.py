@@ -2,23 +2,18 @@
 
 军事工业 HUD 风格 —— 深钢色 + 琥珀色准星点缀，数字用等宽字体。
 单文件、零依赖、离线可开。sticky 表头偏移用 JS 实测，杜绝遮盖。
+
+两种模式：
+- local（默认）：含服务器专属 UI（检查更新按钮/状态条/轮询），供 exe 内嵌
+- web：纯静态数据页（无服务器按钮，加"数据更新于"横幅），供 GitHub Pages
 """
-import json, os
+import json
+import os
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(ROOT, 'frontend', 'unit_data.json'), 'r', encoding='utf-8') as f:
-    data = json.load(f)
-
-data_json = json.dumps(data, ensure_ascii=False)
-
-html = '''<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mechabellum 兵种数据 · 钢铁指挥官</title>
-<style>
+# ============ 共享 CSS ============
+CSS = """<style>
 /* ===== 设计令牌 ===== */
 :root{
   --bg:#0b0e13;            /* 深钢蓝黑 */
@@ -70,6 +65,8 @@ body{background:var(--bg);color:var(--text);font:14px/1.6 var(--sans);min-height
 .check-btn:disabled{opacity:.5;cursor:wait}
 .statusbar{max-width:1440px;margin:0 auto;padding:0 20px 8px;font:11px var(--mono);color:var(--dim);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .statusbar .ok{color:var(--spd)}.statusbar .warn{color:var(--atk)}.statusbar .err{color:var(--hp)}
+/* 网页版更新横幅 */
+.web-banner{max-width:1440px;margin:0 auto;padding:0 20px 10px;font:11px var(--mono);color:var(--spd);letter-spacing:1px}
 
 /* ===== 主内容 ===== */
 main{max-width:1440px;margin:0 auto;padding:16px 20px 60px}
@@ -148,11 +145,10 @@ tbody tr:last-child td{border-bottom:none}
 @media(prefers-reduced-motion:reduce){
   *{transition:none!important}
 }
-</style>
-</head>
-<body>
+</style>"""
 
-<header class="toolbar">
+# ============ 头部（含条件占位） ============
+HEADER = """<header class="toolbar">
   <div class="accent-line"></div>
   <div class="bar">
     <div class="brand">
@@ -167,7 +163,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="tab" data-tab="cards">卡片</div>
       <div class="tab" data-tab="about">关于</div>
     </nav>
-    <button id="checkBtn" class="check-btn">&#9881; 检查更新</button>
+    __CHECK_BTN__
   </div>
   <div class="filters" id="filters-table">
     <input type="text" id="search" placeholder="搜索兵种..." oninput="renderTable()">
@@ -185,10 +181,11 @@ tbody tr:last-child td{border-bottom:none}
       <option value="">全部体型</option><option value="超巨型">超巨型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
     </select>
   </div>
-  <div class="statusbar" id="statusBar">初始化中…</div>
-</header>
+  __BOTTOM_BAR__
+</header>"""
 
-<main>
+# ============ 主内容 ============
+MAIN = """<main>
   <div id="tab-table">
     <div class="table-wrap">
       <table id="unitTable">
@@ -224,16 +221,17 @@ tbody tr:last-child td{border-bottom:none}
       <p><a href="https://github.com/LuckLuffy/MechabellumData">GitHub 仓库</a></p>
     </div>
   </div>
-</main>
+</main>"""
 
-<div class="overlay" id="overlay"></div>
+# ============ 弹窗 ============
+POPUP = """<div class="overlay" id="overlay"></div>
 <div class="popup" id="detailPanel">
   <button class="close-btn" id="closeBtn">&times;</button>
   <div id="detailContent"></div>
-</div>
+</div>"""
 
-<script>
-var RAW = ''' + data_json + ''';
+# ============ JS 核心（共享） ============
+JS_PRE = """var RAW = __DATA_JSON__;
 
 // 统一映射函数：内嵌 RAW 与服务器 /api/data 两条路径共用，避免字段漂移
 function makeUnit(u){
@@ -405,8 +403,11 @@ document.addEventListener('click',function(e){
   var el=e.target.closest&&e.target.closest('[data-unit]');
   if(el) showDetail(el.getAttribute('data-unit'));
 });
+"""
 
-/* ===== API 数据源 ===== */
+# ============ JS 服务器专属（仅 local 模式） ============
+JS_API = """
+/* ===== API 数据源（仅本地服务器版） ===== */
 function api(url, opts){
   return fetch(url, opts).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
 }
@@ -446,16 +447,67 @@ document.getElementById('checkBtn').addEventListener('click', function(){
 // 每 30 分钟刷新一次状态显示（不触发检查）
 setInterval(refreshStatus, 30*60*1000);
 refreshStatus();
+"""
 
+JS_INIT_LOCAL = """
 /* ===== 初始化 ===== */
 renderTable();
 refreshData();
-</script>
-</body>
-</html>'''
+"""
 
-out_path = os.path.join(ROOT, 'frontend', 'index.html')
-with open(out_path, 'w', encoding='utf-8') as f:
-    f.write(html)
+JS_INIT_WEB = """
+/* ===== 初始化（静态网页版：直接渲染内嵌数据） ===== */
+renderTable();
+renderCards();
+"""
 
-print(f'Built: {out_path} ({len(html)} bytes, {len(data)} units)')
+
+def render_page(data_json: str, web: bool = False, updated_at: str = "") -> str:
+    """渲染完整 HTML。
+
+    web=True 时：无服务器按钮/状态条/轮询，加"数据更新于"横幅。
+    """
+    if web:
+        check_btn = ""
+        bottom_bar = (
+            '<div class="web-banner">&#128197; 数据更新于 ' + updated_at + ' · 每周自动更新</div>'
+        )
+        api_js = ""
+        init_js = JS_INIT_WEB
+    else:
+        check_btn = '<button id="checkBtn" class="check-btn">&#9881; 检查更新</button>'
+        bottom_bar = '<div class="statusbar" id="statusBar">初始化中…</div>'
+        api_js = JS_API
+        init_js = JS_INIT_LOCAL
+
+    head = (
+        '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n'
+        '<meta charset="UTF-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        '<title>Mechabellum 兵种数据 · 钢铁指挥官</title>\n'
+        + CSS
+        + '</head>\n<body>\n'
+    )
+
+    header = HEADER.replace("__CHECK_BTN__", check_btn).replace("__BOTTOM_BAR__", bottom_bar)
+    js = JS_PRE.replace("__DATA_JSON__", data_json) + api_js + init_js
+
+    return (
+        head + header + MAIN + POPUP
+        + '<script>\n' + js + '</script>\n</body>\n</html>'
+    )
+
+
+def main():
+    with open(os.path.join(ROOT, 'frontend', 'unit_data.json'), 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    data_json = json.dumps(data, ensure_ascii=False)
+    html = render_page(data_json, web=False)
+    out_path = os.path.join(ROOT, 'frontend', 'index.html')
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write(html)
+    print(f'Built: {out_path} ({len(html)} bytes, {len(data)} units)')
+
+
+if __name__ == "__main__":
+    main()
