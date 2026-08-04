@@ -96,6 +96,7 @@ tbody tr:last-child td{border-bottom:none}
 .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .name-cell{font-weight:600;display:flex;align-items:center;gap:8px}
 .tag{display:inline-flex;align-items:center;padding:1px 7px;border-radius:3px;font:600 11px var(--sans);letter-spacing:.5px}
+.tag.super-giant{background:rgba(255,180,84,.14);color:var(--accent);border:1px solid rgba(255,180,84,.4)}
 .tag.giant{background:rgba(210,168,255,.12);color:var(--giant);border:1px solid rgba(210,168,255,.3)}
 .tag.medium{background:rgba(79,195,247,.10);color:var(--air);border:1px solid rgba(79,195,247,.3)}
 .tag.small{background:rgba(138,148,160,.10);color:var(--small);border:1px solid rgba(138,148,160,.25)}
@@ -171,7 +172,7 @@ tbody tr:last-child td{border-bottom:none}
   <div class="filters" id="filters-table">
     <input type="text" id="search" placeholder="搜索兵种..." oninput="renderTable()">
     <select id="typeFilter" onchange="renderTable()">
-      <option value="">全部体型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
+      <option value="">全部体型</option><option value="超巨型">超巨型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
     </select>
     <select id="moveFilter" onchange="renderTable()">
       <option value="">全部机动</option><option value="飞行">飞行</option><option value="地面">地面</option>
@@ -181,7 +182,7 @@ tbody tr:last-child td{border-bottom:none}
   <div class="filters" id="filters-cards" style="display:none">
     <input type="text" id="cardSearch" placeholder="搜索兵种..." oninput="renderCards()">
     <select id="cardTypeFilter" onchange="renderCards()">
-      <option value="">全部体型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
+      <option value="">全部体型</option><option value="超巨型">超巨型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
     </select>
   </div>
   <div class="statusbar" id="statusBar">初始化中…</div>
@@ -264,7 +265,7 @@ var sortField = 'cost', sortDesc = false;
 
 function fmt(v){ return v==null||isNaN(v)?'-':Number.isInteger(v)?v.toLocaleString():v }
 function fmt2(v){ return (v==null||isNaN(v)) ? '-' : v.toFixed(2) }
-function sizeTag(s){ return '<span class="tag '+(s==='巨型'?'giant':s==='中型'?'medium':'small')+'">'+s+'</span>' }
+function sizeTag(s){ return '<span class="tag '+(s==='超巨型'?'super-giant':s==='巨型'?'giant':s==='中型'?'medium':'small')+'">'+s+'</span>' }
 function flyTag(){ return '<span class="tag fly">飞行</span>' }
 
 /* ===== 数据表 ===== */

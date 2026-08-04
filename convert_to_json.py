@@ -42,7 +42,9 @@ def main(source_path=None):
             pass
 
         # 体型分类
-        if cost >= 400 or hp >= 40000:
+        if cost >= 800:
+            unit["体型"] = "超巨型"
+        elif cost >= 400 or hp >= 40000:
             unit["体型"] = "巨型"
         elif cost >= 300 or hp >= 10000:
             unit["体型"] = "中型"
