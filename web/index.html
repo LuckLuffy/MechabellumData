@@ -22,7 +22,7 @@
   --giant:#d2a8ff;
   --air:#79c0ff;
   --small:#8a94a0;
-  --row-hover:#161c26;
+  --row-hover:#1f2530;
   --mono:'Cascadia Code','Consolas',ui-monospace,monospace;
   --sans:'Segoe UI','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;
   --display:'Bahnschrift','Segoe UI',sans-serif;
@@ -59,27 +59,30 @@ body{background:var(--bg);color:var(--text);font:15px/1.7 var(--sans);min-height
 /* 网页版更新横幅 */
 .web-banner{max-width:1440px;margin:0 auto;padding:0 20px 10px;font:11px var(--mono);color:var(--spd);letter-spacing:1px}
 
-/* ===== 主内容 ===== */
-main{max-width:1440px;margin:0 auto;padding:16px 20px 60px}
+/* ===== 主内容（用满横向宽度，减少横向滚动） ===== */
+main{width:100%;padding:16px 16px 60px}
 
 /* ===== 数据表 ===== */
 /* 表格自身体积内滚动：表头吸在滚动容器顶部(top:0)，
    不会与上方 sticky 工具栏互相重叠 */
 .table-wrap{overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
 /* border-collapse:separate 是 th sticky 生效的前提（collapse 下 Chrome 会失效） */
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;min-width:900px}
-thead th{position:sticky;top:0;z-index:5;background:var(--surface2);padding:13px 14px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;font:600 13px var(--sans);color:var(--dim);letter-spacing:.5px}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+thead th{position:sticky;top:0;z-index:5;background:var(--surface2);padding:11px 8px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;font:600 13px var(--sans);color:var(--dim);letter-spacing:.5px}
 thead th:hover{color:var(--text)}
 /* 冻结第一列（兵种名）：横向滚动时保持可见 */
-thead th:first-child{position:sticky;left:0;z-index:6;border-right:1px solid var(--border-bright)}
+thead th:first-child{position:sticky;left:0;z-index:6;border-right:1px solid var(--border-bright);min-width:140px}
 tbody td:first-child{position:sticky;left:0;z-index:4;background:var(--surface);border-right:1px solid var(--border-bright)}
-tbody tr:hover td:first-child{background:var(--row-hover)}
+tbody tr:hover td:first-child{background:rgba(255,180,84,.14)}
 thead th.sorted{color:var(--accent)}
 thead th.sorted::after{content:' ▲';font-size:9px;color:var(--accent)}
 thead th.sorted.desc::after{content:' ▼'}
-tbody td{padding:12px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
-tbody tr{transition:background .1s}
-tbody tr:hover td{background:var(--row-hover)}
+tbody td{padding:10px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{transition:background .08s}
+/* 悬停变色：琥珀色高亮，显眼易辨 */
+tbody tr:hover td{background:rgba(255,180,84,.13)}
+tbody tr:hover td{color:#fff}
+tbody tr:hover .name-cell{color:var(--accent)}
 tbody tr:last-child td{border-bottom:none}
 .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .name-cell{font-weight:600;display:flex;align-items:center;gap:8px}
@@ -118,6 +121,19 @@ tbody tr:last-child td{border-bottom:none}
 .stat-cell .k{font-size:12px;color:var(--dim)}
 .stat-cell .v{font-family:var(--mono);font-weight:600}
 
+/* ===== 公式页 ===== */
+.formula-card{max-width:900px;margin:24px auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px}
+.formula-card h3{font:700 20px var(--display);margin-bottom:10px}
+.formula-sub{color:var(--dim);margin-bottom:16px;font-size:13px}
+.formula-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+.formula-table th{background:var(--surface2);padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);font:600 13px var(--sans);color:var(--dim)}
+.formula-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.formula-table td:first-child{font-weight:600;color:var(--accent);white-space:nowrap}
+.formula-table td:nth-child(2){font-family:var(--mono);white-space:nowrap}
+.formula-list{list-style:none;padding:0;margin-top:8px}
+.formula-list li{padding:6px 0;color:var(--text);font-size:14px}
+.formula-list li b{color:var(--accent)}
+
 /* ===== 关于 ===== */
 .about-card{max-width:560px;margin:24px auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px}
 .about-card h3{font:700 20px var(--display);margin-bottom:8px}
@@ -151,6 +167,7 @@ tbody tr:last-child td{border-bottom:none}
     </div>
     <nav class="tabs">
       <div class="tab active" data-tab="table">数据表</div>
+      <div class="tab" data-tab="formula">公式</div>
       <div class="tab" data-tab="cards">卡片</div>
       <div class="tab" data-tab="about">关于</div>
     </nav>
@@ -172,7 +189,7 @@ tbody tr:last-child td{border-bottom:none}
       <option value="">全部体型</option><option value="超巨型">超巨型</option><option value="巨型">巨型</option><option value="中型">中型</option><option value="小型">小型</option>
     </select>
   </div>
-  <div class="web-banner">&#128197; 数据更新于 2026-08-04 23:27 · 每周自动更新</div>
+  <div class="web-banner">&#128197; 数据更新于 2026-08-04 23:34 · 每周自动更新</div>
 </header><main>
   <div id="tab-table">
     <div class="table-wrap">
@@ -194,6 +211,29 @@ tbody tr:last-child td{border-bottom:none}
         </tr></thead>
         <tbody></tbody>
       </table>
+    </div>
+  </div>
+
+  <div id="tab-formula" style="display:none">
+    <div class="formula-card">
+      <h3>计算公式与规则</h3>
+      <p class="formula-sub">新表结构：攻击力 → 对单输出 → 爆发峰值 → 对单DPS</p>
+      <table class="formula-table">
+        <tr><th>字段</th><th>公式</th><th>说明</th></tr>
+        <tr><td>攻击力</td><td>—</td><td>单管单发伤害（原始数据）</td></tr>
+        <tr><td>对单输出</td><td>= 攻击力 × 武器数</td><td>多武器单位：暴雨×4、鬼鳐×2、先知×2、恶灵×4、霸主×4、泰山×4、战争工厂×2</td></tr>
+        <tr><td>爆发峰值</td><td>= 对单输出 × 数量</td><td>雷霆 ×3、深渊 ×10（特殊倍率）</td></tr>
+        <tr><td>对单DPS</td><td>= 对单输出 ÷ 攻击间隔</td><td>深渊例外：= 爆发峰值 ÷ 间隔</td></tr>
+        <tr><td>总DPS</td><td>= 对单DPS × 数量</td><td>全队持续输出</td></tr>
+        <tr><td>总血量</td><td>= 单体血量 × 数量</td><td>全队血量</td></tr>
+        <tr><td>输出性价比</td><td>= 对单DPS ÷ 造价</td><td>单位造价输出效率</td></tr>
+        <tr><td>血量性价比</td><td>= 单体血量 ÷ 造价</td><td>单位造价血量效率</td></tr>
+      </table>
+      <h3 style="margin-top:24px">特殊单位</h3>
+      <ul class="formula-list">
+        <li><b>深渊</b>：爆发峰值 ×10（十束射线）；对单DPS 用 爆发峰值÷间隔（持续输出含倍率）</li>
+        <li><b>雷霆</b>：爆发峰值 ×3（三管齐射）；对单DPS 用 对单输出÷间隔（持续DPS用单管，不含×3）</li>
+      </ul>
     </div>
   </div>
 
@@ -384,6 +424,7 @@ function switchTab(t){
   var tabs=document.querySelectorAll('.tab');
   for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active',tabs[i].getAttribute('data-tab')===t);
   document.getElementById('tab-table').style.display=t==='table'?'':'none';
+  document.getElementById('tab-formula').style.display=t==='formula'?'':'none';
   document.getElementById('tab-cards').style.display=t==='cards'?'':'none';
   document.getElementById('tab-about').style.display=t==='about'?'':'none';
   document.getElementById('filters-table').style.display=t==='table'?'':'none';
