@@ -4,9 +4,7 @@
 
 自动监控 Steam 平衡性公告 → Deepseek 解析数值变动 → 更新数据表 → 前端即时展示。
 
-指导老师 @流影
-
-https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click
+指导老师：[**@流影**](https://space.bilibili.com/11623264?spm_id_from=333.1387.follow.user_card.click)
 
 ## 下载使用（免命令行）
 
@@ -150,8 +148,4 @@ python -m unittest discover tests   # 26 tests
 
 ## License
 
-**MIT** —— 宽松的开源许可证。你可以自由地使用、修改、复制、分发本项目的代码
-（包括商用），只需在分发时保留版权声明即可。项目按"原样"提供，作者不承担任何
-使用造成的责任。
-
-> 简单说：随便用，标明出处即可。
+**MIT**
