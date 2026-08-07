@@ -143,6 +143,18 @@ tbody tr:last-child td{border-bottom:none}
 .formula-list li{padding:6px 0;color:var(--text);font-size:14px}
 .formula-list li b{color:var(--accent)}
 
+/* ===== 日志页 ===== */
+.log-card{max-width:900px;margin:24px auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px}
+.log-card h3{font:700 20px var(--display);margin-bottom:16px}
+.log-empty{color:var(--dim);font:13px var(--sans);text-align:center;padding:30px 0}
+.log-entry{border-left:2px solid var(--accent);padding:2px 0 2px 14px;margin-bottom:16px}
+.log-entry h4{font:600 15px var(--sans);color:var(--text);margin-bottom:2px}
+.log-meta{font:11px var(--mono);color:var(--dim);margin-bottom:8px;letter-spacing:.5px}
+.log-changes{list-style:none;padding:0;margin:0}
+.log-changes li{font:13px var(--mono);padding:3px 0;color:var(--text)}
+.log-changes li b{color:var(--accent);font-weight:600}
+.log-changes li .sub{color:var(--dim)}
+
 /* ===== 关于 ===== */
 .about-card{max-width:560px;margin:24px auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px}
 .about-card h3{font:700 20px var(--display);margin-bottom:8px}
@@ -178,6 +190,7 @@ HEADER = """<header class="toolbar">
     <nav class="tabs">
       <div class="tab active" data-tab="table">数据表</div>
       <div class="tab" data-tab="formula">公式</div>
+      <div class="tab" data-tab="log">日志</div>
       <div class="tab" data-tab="cards">卡片</div>
       <div class="tab" data-tab="about">关于</div>
     </nav>
@@ -250,6 +263,8 @@ MAIN = """<main>
     </div>
   </div>
 
+  <div id="tab-log" style="display:none"></div>
+
   <div id="tab-cards" style="display:none">
     <div class="card-grid" id="cardGrid"></div>
   </div>
@@ -274,6 +289,9 @@ POPUP = """<div class="overlay" id="overlay"></div>
 
 # ============ JS 核心（共享） ============
 JS_PRE = """var RAW = __DATA_JSON__;
+
+// 变更日志：web 模式由构建时内嵌；local 模式启动后再从 /api/changelog 拉取覆盖
+var CHANGE_LOG = __CHANGE_LOG_JSON__;
 
 // 统一映射函数：内嵌 RAW 与服务器 /api/data 两条路径共用，避免字段漂移
 // 新表结构：对单输出F/爆发峰值G/对单DPSH 由表格提供（含弹药数）
@@ -306,6 +324,7 @@ var sortField = 'cost', sortDesc = false;
 
 function fmt(v){ return v==null||isNaN(v)?'-':Number.isInteger(v)?v.toLocaleString():v }
 function fmt2(v){ return (v==null||isNaN(v)) ? '-' : v.toFixed(2) }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function sizeTag(s){ return '<span class="tag '+(s==='超巨型'?'super-giant':s==='巨型'?'giant':s==='中型'?'medium':'small')+'">'+s+'</span>' }
 function flyTag(){ return '<span class="tag fly">飞行</span>' }
 // 对空标签：以下单位具备显著对空能力
@@ -391,6 +410,43 @@ function renderCards(){
   document.getElementById('cardGrid').innerHTML=html;
 }
 
+/* ===== 日志视图（最新三次平衡性更新） ===== */
+function renderLog(){
+  var list = CHANGE_LOG || [];
+  var recent = list.slice(-3).reverse();  // 最新在前，最多 3 条
+  var html = '<div class="log-card"><h3>平衡性更新日志</h3>';
+  if(!recent.length){
+    html += '<p class="log-empty">暂无平衡性更新记录。点击「检查更新」或等每周自动更新后，这里会展示最近调整了哪些数据。</p>';
+  } else {
+    for(var i=0;i<recent.length;i++){
+      var e = recent[i];
+      var ver = esc(e.version||'');
+      var date = esc(String(e.date||'').replace('T',' ').slice(0,16));
+      var title = esc(e.title||(ver||'未知更新'));
+      var ch = e.changes||[];
+      html += '<div class="log-entry">';
+      html += '<h4>'+title+'</h4>';
+      html += '<div class="log-meta">'+(ver?'v'+ver+' · ':'')+date+'</div>';
+      if(ch.length){
+        html += '<ul class="log-changes">';
+        for(var j=0;j<ch.length;j++){
+          var c = ch[j];
+          var oldv = (c.old!=null && c.old!=='') ? c.old : '—';
+          var newv = (c.new!=null && c.new!=='') ? c.new : '—';
+          html += '<li><b>'+esc(c.unit||'?')+'</b> · '+esc(c.field||'?')+': '+
+                  '<span class="sub">'+esc(oldv)+' → '+esc(newv)+'</span></li>';
+        }
+        html += '</ul>';
+      } else {
+        html += '<div class="log-meta">无数值变动</div>';
+      }
+      html += '</div>';
+    }
+  }
+  html += '</div>';
+  document.getElementById('tab-log').innerHTML = html;
+}
+
 /* ===== 详情弹窗 ===== */
 function showDetail(name){
   var u=UNITS.find(function(x){return x.name===name}); if(!u) return;
@@ -443,11 +499,13 @@ function switchTab(t){
   for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active',tabs[i].getAttribute('data-tab')===t);
   document.getElementById('tab-table').style.display=t==='table'?'':'none';
   document.getElementById('tab-formula').style.display=t==='formula'?'':'none';
+  document.getElementById('tab-log').style.display=t==='log'?'':'none';
   document.getElementById('tab-cards').style.display=t==='cards'?'':'none';
   document.getElementById('tab-about').style.display=t==='about'?'':'none';
   document.getElementById('filters-table').style.display=t==='table'?'':'none';
   document.getElementById('filters-cards').style.display=t==='cards'?'':'none';
   if(t==='table') renderTable();
+  if(t==='log') renderLog();
   if(t==='cards') renderCards();
 }
 
@@ -489,6 +547,11 @@ function refreshData(){
     }
   }).catch(function(){ /* 离线：保留内嵌 RAW 数据 */ });
 }
+function refreshLog(){
+  api('/api/changelog').then(function(d){
+    if(d && d.length){ CHANGE_LOG = d; renderLog(); }
+  }).catch(function(){ /* 离线：保留内嵌/空日志 */ });
+}
 function refreshStatus(){
   api('/api/status').then(function(s){
     var parts=['上次检查: '+(s.last_title||'无')];
@@ -519,6 +582,7 @@ JS_INIT_LOCAL = """
 /* ===== 初始化 ===== */
 renderTable();
 refreshData();
+refreshLog();
 """
 
 JS_INIT_WEB = """
@@ -528,10 +592,12 @@ renderCards();
 """
 
 
-def render_page(data_json: str, web: bool = False, updated_at: str = "") -> str:
+def render_page(data_json: str, web: bool = False, updated_at: str = "",
+                change_log: list = None) -> str:
     """渲染完整 HTML。
 
     web=True 时：无服务器按钮/状态条/轮询，加"数据更新于"横幅。
+    change_log：平衡性更新日志（cache/change_log.json），web 模式内嵌进 HTML。
     """
     if web:
         check_btn = ""
@@ -556,7 +622,9 @@ def render_page(data_json: str, web: bool = False, updated_at: str = "") -> str:
     )
 
     header = HEADER.replace("__CHECK_BTN__", check_btn).replace("__BOTTOM_BAR__", bottom_bar)
-    js = JS_PRE.replace("__DATA_JSON__", data_json) + api_js + init_js
+    change_log_json = json.dumps(change_log if change_log else [], ensure_ascii=False)
+    js = (JS_PRE.replace("__DATA_JSON__", data_json)
+                .replace("__CHANGE_LOG_JSON__", change_log_json) + api_js + init_js)
 
     return (
         head + header + MAIN + POPUP
@@ -564,11 +632,22 @@ def render_page(data_json: str, web: bool = False, updated_at: str = "") -> str:
     )
 
 
+def load_change_log() -> list:
+    """读取 cache/change_log.json（不存在或非法时返回空列表）。"""
+    path = os.path.join(ROOT, "cache", "change_log.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
 def main():
     with open(os.path.join(ROOT, 'frontend', 'unit_data.json'), 'r', encoding='utf-8') as f:
         data = json.load(f)
     data_json = json.dumps(data, ensure_ascii=False)
-    html = render_page(data_json, web=False)
+    html = render_page(data_json, web=False, change_log=load_change_log())
     out_path = os.path.join(ROOT, 'frontend', 'index.html')
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write(html)

@@ -16,40 +16,19 @@
 - 每周一自动更新，数据更新时网页自动热更新
 - 双站同步：Netlify + GitHub Pages
 
-## 下载使用
+## 离线查看（免 API Key）
 
-**Windows x64 免安装版**
-
-📥 下载：[**GitHub Release**](https://github.com/LuckLuffy/MechabellumData/releases)
-
-```
-1. 下载 MechaMv1.0.3.exe
-2. 双击运行 —— 弹出配置窗口，填入你的 Deepseek API Key
-     （申请：https://platform.deepseek.com）
-3. 点「保存」→ 自动打开浏览器 http://localhost:8800
-4. 点网页「检查更新」即可自动解析平衡性公告
-```
-
-> 程序不内置任何 API Key —— 你的 Key 只存在你自己电脑的 `.env` 里，不公开。
-> 首次运行（或 Key 缺失时）自动弹窗填写；点「跳过」可暂不配置，仅检测公告并保存到 `cache/parsed_posts/`，下次启动仍会提示。
-> 若解压/下载报毒，属 PyInstaller 打包工具的常见误报，可添加信任后使用。
-
-重新打包：`python build_exe.py`（需先 `pip install pyinstaller`）。
-
-### 不想注册 AI？直接下载前端页面
-
-如果只是想查看兵种数据、不想申请 Deepseek API Key，直接下载最新的
-[`frontend/index.html`](frontend/index.html) 即可：
+想直接查看兵种数据，下载最新的 [`frontend/index.html`](frontend/index.html) 即可：
 
 ```
 1. 下载 index.html
 2. 双击用浏览器打开
 3. 无需服务器、无需注册、无需联网 —— 离线查看全部 36 个单位数据
-   （含攻击力/对单输出/爆发峰值/对单DPS/总DPS/性价比等列，支持排序/筛选/公式选项卡）
+   （含攻击力/对单输出/爆发峰值/对单DPS/总DPS/性价比等列，支持排序/筛选/公式/日志选项卡）
 ```
 
-> 这是纯静态数据页，数据已内嵌。区别是：静态页只能看当前数据，
-> exe + AI 才能自动监控 Steam 公告并实时更新数据表。
+> 这是纯静态数据页，数据已内嵌，展示的是构建时的数据快照；
+> 在线版本（上面双站）由每周自动更新维护，数据变化时网页自动刷新。
 
 ## 从源码运行
 
@@ -72,7 +51,7 @@ python server.py
 | **自动识别** | 关键词分类 + Deepseek（Anthropic 兼容端点）提取数值变动 |
 | **自动更新** | 变动应用到 xlsx 数据表 → 重建前端数据 → 记录变更日志 |
 | **触发方式** | 后端启动自动检查 + 前端「检查更新」按钮 |
-| **前端展示** | 36 单位数据表（攻击力/对单输出/爆发峰值/对单DPS/总DPS/性价比等），排序/筛选/详情弹窗，公式选项卡，悬停高亮 |
+| **前端展示** | 36 单位数据表（攻击力/对单输出/爆发峰值/对单DPS/总DPS/性价比等），排序/筛选/详情弹窗，公式/日志选项卡，悬停高亮 |
 | **离线降级** | 无服务器时前端回退内嵌数据，双击 `frontend/index.html` 仍可用 |
 
 ## 架构
@@ -118,9 +97,6 @@ SERVER_PORT=8800                   # 可选，默认 8800
 
 ```
 MechabellumData/
-├── dist/MechaMv1.0.3.exe      # Windows x64 免安装版（供下载）
-├── app.py                      # exe 入口（资源引导 + 启动 + 开浏览器）
-├── build_exe.py                # PyInstaller 打包脚本（不嵌 key）
 ├── server.py                   # 本地 HTTP 服务器 + API
 ├── balance_monitor.py          # 检查管线 run_check()
 ├── steam_fetcher.py            # Steam RSS 抓取 + 缓存
@@ -133,11 +109,11 @@ MechabellumData/
 ├── requirements.txt            # 依赖清单
 ├── tests/                      # 28 个 unittest
 ├── .github/workflows/update.yml # 每周 AI agent（自动更新+部署 Pages）
-├── frontend/index.html         # exe 内嵌前端（含服务器按钮）
+├── frontend/index.html         # 本地服务器前端（含 API 按钮）
 ├── web/                        # 网页版静态站（GitHub Pages + Netlify 双部署）
 ├── netlify.toml                # Netlify 镜像配置（发布 web/）
 ├── 钢铁指挥官兵种单位数据表7.29.xlsx  # 基准数据表
-└── local/                      # 本地私有文档（开发文档/操作指南/解析/复盘，不推送）
+└── local/                      # 本地私有文档 + 已退役 exe 打包归档（不推送）
 ```
 
 ## 数据模型

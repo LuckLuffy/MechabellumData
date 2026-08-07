@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from build_frontend import render_page
+from build_frontend import render_page, load_change_log
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(ROOT, "web")
@@ -45,7 +45,8 @@ def main():
     updated_at = get_updated_at()
 
     os.makedirs(WEB_DIR, exist_ok=True)
-    html = render_page(data_json, web=True, updated_at=updated_at)
+    html = render_page(data_json, web=True, updated_at=updated_at,
+                       change_log=load_change_log())
 
     with open(os.path.join(WEB_DIR, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
