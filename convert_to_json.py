@@ -6,33 +6,41 @@ from sheet_updater import load_workbook
 
 OUTPUT_PATH = os.path.join(ROOT_DIR, "frontend", "unit_data.json")
 
-# 地面单位但被"对空+速度快"规则误判为飞行的，强制标为地面
-GROUND_FORCE = {"台风", "野马", "先知"}
+# 飞行单位（显式清单）。
+# 旧实现用「对空 > 0.5 且 移速 > 8 → 飞行」推断，对快速对空单位会误判成飞行：
+# 野马、先知、台风、百夫长 都是反例（能对空但不飞），前三个当时靠 GROUND_FORCE
+# 逐个打补丁，补到第四个说明规则不成立 —— 改成显式清单，对空能力不再影响飞行与否。
+FLYING_UNITS = {"深渊", "霸主", "雷霆", "恶灵", "凤凰", "鬼鳐", "兵峰"}
 
 # 对空能力（0 无 / 0.5 部分 / 1 有）。
 # 2026-09 表把「对空」列下线了，但前端要用它算「飞行/地面」并显示对空值，
 # 这里沿用上一版（v1.11.1.1a）发布值，保证页面与旧版一致。
 # ⚠ 对空能力若发生平衡性变动，代码不会感知——需要把「对空」列加回表里。
-# ⚠ 百夫长是 2.0 新单位，上一版没有它的对空值，暂按 0（无对空）处理，待人工确认。
+# 百夫长为 2.0 新单位，对空值由用户确认（可对空 = 1）。
 ANTI_AIR = {
     "弧光": 0.5, "长弓": 1, "魔眼": 0.5, "尖牙": 1, "狼蛛": 0.5, "鬼鳐": 1,
     "凤凰": 1, "兵峰": 1, "野马": 1, "先知": 1, "恶灵": 1, "台风": 1,
     "沙虫": 0.5, "熔点": 1, "雷霆": 1, "霸主": 1, "深渊": 1, "泰山": 0.5,
-    "丧钟": 1,
+    "丧钟": 1, "百夫长": 1,
 }
 ANTI_AIR_DEFAULT = 0
 
 # ===== 公式规则（2026-09 表结构，用户设计）=====
 # 表内只存原始列「攻击力 + 弹药量」，对单输出/爆发峰值/对单DPS 全部由本模块推算。
-# 不再需要按单位名硬编码弹药数或倍率——弹药量已是表内一列。
+# 弹药量已是表内一列，不再需要按单位名硬编码弹药数。
+#
+# 唯一保留的特殊倍率：雷霆一次攻击放 3 道闪电、各打各的目标 ——
+# 打单个目标只吃得到一道（所以对单输出不含 ×3），但全队齐射上限要算满 3 道，
+# 因此只有爆发峰值吃这个倍率。深渊的 ×10 已折进表内「弹药量」列，不走这里。
+BURST_MULTIPLIER = {"雷霆": 3}
 
 
-def compute_derived(atk, ammo, count, interval) -> tuple:
+def compute_derived(name, atk, ammo, count, interval) -> tuple:
     """推算 对单输出/爆发峰值/对单DPS。
 
     规则：
       对单输出 = 攻击力 × 弹药量
-      爆发峰值 = 对单输出 × 数量
+      爆发峰值 = 对单输出 × 数量 × 特殊倍率（仅雷霆 ×3）
       对单DPS  = 对单输出 ÷ 攻击间隔
     返回 (single_out, burst, dps)。
     """
@@ -42,7 +50,7 @@ def compute_derived(atk, ammo, count, interval) -> tuple:
     interval = float(interval or 0)
 
     single_out = atk * ammo
-    burst = single_out * count
+    burst = single_out * count * BURST_MULTIPLIER.get(name, 1)
     dps = single_out / interval if interval else 0
     return single_out, burst, dps
 
@@ -79,6 +87,7 @@ def main(source_path=None):
 
         # 按规则推算 对单输出/爆发峰值/对单DPS
         so, burst, dps = compute_derived(
+            name,
             unit.get("攻击力"),
             unit.get("弹药量"),
             unit.get("数量"),
@@ -107,16 +116,8 @@ def main(source_path=None):
         else:
             unit["体型"] = "小型"
 
-        # 移动类型（地面单位即使对空+速度快也不应标为飞行）
-        if name in GROUND_FORCE:
-            unit["移动类型"] = "地面"
-        else:
-            speed = unit.get("移速", 0)
-            try:
-                speed = int(speed) if speed else 0
-            except (ValueError, TypeError):
-                speed = 0
-            unit["移动类型"] = "飞行" if unit.get("对空") and float(str(unit.get("对空", 0))) > 0.5 and speed > 8 else "地面"
+        # 移动类型：查显式清单，不再由 对空/移速 推断
+        unit["移动类型"] = "飞行" if name in FLYING_UNITS else "地面"
 
         units.append(unit)
 
