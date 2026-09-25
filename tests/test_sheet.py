@@ -19,6 +19,15 @@ def _baseline_copy(dst_dir, name):
     return dst
 
 
+def _baseline_crawler_hp():
+    """爬虫血量直接读基准表。
+
+    基准表随版本更新（2.0 把爬虫从 263 改成 250），硬编码会让每次换表都误报失败。
+    """
+    _, ws, row_map, col_map = sheet_updater.load_workbook(BASELINE_XLSX)
+    return ws.cell(row=row_map["爬虫"], column=col_map["单体血量"]).value
+
+
 class TestCumulativeWorkbook(unittest.TestCase):
     """load_workbook(path=None) 应解析到 outputs/ 最新版本，实现跨版本累积。"""
 
@@ -34,7 +43,8 @@ class TestCumulativeWorkbook(unittest.TestCase):
         _baseline_copy(self._tmp, "unit_data_vbaseline.xlsx")
         wb, ws, row_map, col_map = sheet_updater.load_workbook()
         self.assertEqual(
-            ws.cell(row=row_map["爬虫"], column=col_map["单体血量"]).value, 263)
+            ws.cell(row=row_map["爬虫"], column=col_map["单体血量"]).value,
+            _baseline_crawler_hp())
 
     def test_changes_accumulate_across_runs(self):
         _baseline_copy(self._tmp, "unit_data_vbaseline.xlsx")
@@ -91,7 +101,7 @@ class TestConvertToJsonCumulative(unittest.TestCase):
         explicit = _baseline_copy(self._tmp, "custom.xlsx")
         units = convert_to_json.main(source_path=explicit)
         crawler = next(u for u in units if u["name"] == "爬虫")
-        self.assertEqual(crawler["单体血量"], 263)  # 显式文件：基准值
+        self.assertEqual(crawler["单体血量"], _baseline_crawler_hp())  # 显式文件：基准值
 
 
 if __name__ == "__main__":

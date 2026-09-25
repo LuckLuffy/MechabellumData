@@ -154,6 +154,10 @@ tbody tr:last-child td{border-bottom:none}
 .log-changes li{font:13px var(--mono);padding:3px 0;color:var(--text)}
 .log-changes li b{color:var(--accent);font-weight:600}
 .log-changes li .sub{color:var(--dim)}
+.log-status{font:11px var(--mono);color:var(--accent-2);margin-bottom:6px;letter-spacing:.5px}
+.log-status.s-skipped,.log-status.s-parse_failed{color:var(--accent)}
+.log-skip{color:var(--accent);font-weight:600}
+.log-reason{color:var(--dim)}
 
 /* ===== 关于 ===== */
 .about-card{max-width:560px;margin:24px auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px}
@@ -233,7 +237,7 @@ MAIN = """<main>
           <th data-sort="dps_ratio" class="num">输出性价比</th>
           <th data-sort="hp_ratio" class="num">血量性价比</th>
           <th data-sort="range" class="num">射程</th><th data-sort="count" class="num">数量</th>
-          <th data-sort="slots" class="num">格子</th><th data-sort="unlock" class="num">解锁</th>
+          <th data-sort="unlock" class="num">解锁</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -243,13 +247,14 @@ MAIN = """<main>
   <div id="tab-formula" style="display:none">
     <div class="formula-card">
       <h3>计算公式与规则</h3>
-      <p class="formula-sub">新表结构：攻击力 → 对单输出 → 爆发峰值 → 对单DPS</p>
+      <p class="formula-sub">新表结构：攻击力 + 弹药量 → 对单输出 → 爆发峰值 → 对单DPS</p>
       <table class="formula-table">
         <tr><th>字段</th><th>公式</th><th>说明</th></tr>
-        <tr><td>攻击力</td><td>—</td><td>单管单发伤害（原始数据）</td></tr>
-        <tr><td>对单输出</td><td>= 攻击力 × 弹药数</td><td>多弹药单位：暴雨×4、鬼鳐×2、先知×2、恶灵×4、霸主×4、泰山×4、战争工厂×2</td></tr>
-        <tr><td>爆发峰值</td><td>= 对单输出 × 数量</td><td>雷霆 ×3、深渊 ×10（总共20次判定取中间值10次）</td></tr>
-        <tr><td>对单DPS</td><td>= 对单输出 ÷ 攻击间隔</td><td>深渊例外：= 爆发峰值 ÷ 间隔</td></tr>
+        <tr><td>攻击力</td><td>—</td><td>单管单发伤害（表内原始数据）</td></tr>
+        <tr><td>弹药量</td><td>—</td><td>一次攻击的弹药数（表内原始数据）</td></tr>
+        <tr><td>对单输出</td><td>= 攻击力 × 弹药量</td><td>一次攻击打满单个目标的总伤害</td></tr>
+        <tr><td>爆发峰值</td><td>= 对单输出 × 数量</td><td>全队单次齐射上限</td></tr>
+        <tr><td>对单DPS</td><td>= 对单输出 ÷ 攻击间隔</td><td>持续单体输出</td></tr>
         <tr><td>总DPS</td><td>= 对单DPS × 数量</td><td>全队持续输出</td></tr>
         <tr><td>总血量</td><td>= 单体血量 × 数量</td><td>全队血量</td></tr>
         <tr><td>输出性价比</td><td>= 总DPS ÷ 造价</td><td>单位造价输出效率</td></tr>
@@ -257,8 +262,8 @@ MAIN = """<main>
       </table>
       <h3 style="margin-top:24px">特殊单位</h3>
       <ul class="formula-list">
-        <li><b>深渊</b>：爆发峰值 ×10（10次判定）；对单DPS 用 爆发峰值÷间隔（持续输出含倍率）</li>
-        <li><b>雷霆</b>：爆发峰值 ×3（3道闪电分别索敌）；对单DPS 用 对单输出÷间隔（打单只计算一道闪电伤害）</li>
+        <li><b>多弹药单位</b>（弹药量 &gt; 1）：深渊×10、泰山×4、霸主×4、恶灵×4、暴雨×4、战争工厂×2、先知×2、鬼鳐×2；其余单位弹药量为 1</li>
+        <li>对单输出、爆发峰值、对单DPS 均由「攻击力 + 弹药量」推算，表内不再单独维护这三列</li>
       </ul>
     </div>
   </div>
@@ -272,7 +277,7 @@ MAIN = """<main>
   <div id="tab-about" style="display:none">
     <div class="about-card">
       <h3>钢铁指挥官 · 兵种数据</h3>
-      <p>数据来源：游戏内手动采集（2026-07-29 · v1.11.1.1.2207）</p>
+      <p>数据来源：游戏内手动采集（2026-09-25 · v2.0）</p>
       <p>自动监控：Steam RSS → 平衡性检测 → Deepseek 解析 → 数据表更新</p>
       <p>技术栈：Python + openpyxl + Deepseek API + 纯静态前端</p>
       <p><a href="https://github.com/LuckLuffy/MechabellumData">GitHub 仓库</a></p>
@@ -294,22 +299,23 @@ JS_PRE = """var RAW = __DATA_JSON__;
 var CHANGE_LOG = __CHANGE_LOG_JSON__;
 
 // 统一映射函数：内嵌 RAW 与服务器 /api/data 两条路径共用，避免字段漂移
-// 新表结构：对单输出F/爆发峰值G/对单DPSH 由表格提供（含弹药数）
+// 新表结构：对单输出/爆发峰值/对单DPS 由构建期按「攻击力 × 弹药量」推算后写入 JSON
 function makeUnit(u){
   var cost = +u["造价"]||0, hp = +u["单体血量"]||0;
-  var atk = +u["攻击力"]||0;              // 攻击力 E
-  var single_out = +u["对单输出"]||0;     // 对单输出 F（=攻击力×弹药数）
-  var burst = +u["爆发峰值"]||0;          // 爆发峰值 G（=F×数量，雷霆×3深渊×10）
-  var dps = +u["对单DPS"]||0;            // 对单DPS H（=F/间隔，深渊=G/间隔）
+  var atk = +u["攻击力"]||0;              // 攻击力（单管单发）
+  var ammo = +u["弹药量"]||0;             // 弹药量（一次攻击的弹药数）
+  var single_out = +u["对单输出"]||0;     // 对单输出 = 攻击力 × 弹药量
+  var burst = +u["爆发峰值"]||0;          // 爆发峰值 = 对单输出 × 数量
+  var dps = +u["对单DPS"]||0;            // 对单DPS = 对单输出 ÷ 间隔
   var count = +u["数量"]||0;
   var total_dps = dps * count;           // 总DPS = 对单DPS × 数量
   var total_hp = hp * count;             // 总血量 = 血量 × 数量
   return {
     name: u.name, size: u["体型"], move: u["移动类型"],
-    cost: cost, hp: hp, speed: +u["移速"]||0, atk: atk,
+    cost: cost, hp: hp, speed: +u["移速"]||0, atk: atk, ammo: ammo,
     single_out: single_out, burst: burst, dps: dps,
     splash: +u["溅射范围"]||0, interval: +u["攻击间隔"]||0,
-    range: +u["射程"]||0, count: count, slots: +u["占用格子"]||0,
+    range: +u["射程"]||0, count: count,
     unlock: isNaN(+u["解锁费用"]) ? u["解锁费用"] : (+u["解锁费用"]||0),
     total_dps: total_dps,
     total_hp: total_hp,
@@ -369,7 +375,6 @@ function renderTable(){
     html+='<td class="num">'+fmt2(u.hp_ratio)+'</td>';
     html+='<td class="num">'+fmt(u.range)+'</td>';
     html+='<td class="num">'+fmt(u.count)+'</td>';
-    html+='<td class="num">'+fmt(u.slots)+'</td>';
     html+='<td class="num">'+fmt(u.unlock)+'</td></tr>';
   }
   document.querySelector('#unitTable tbody').innerHTML=html;
@@ -404,13 +409,23 @@ function renderCards(){
     html+='<div class="card-row"><span class="card-label">攻击力</span><span class="card-value atk">'+fmt(u.atk)+'</span></div>';
     html+='<div class="card-row"><span class="card-label">对单DPS</span><span class="card-value atk">'+fmt2(u.dps)+'</span></div>';
     html+='<div class="card-row"><span class="card-label">总DPS</span><span class="card-value">'+fmt2(u.total_dps)+'</span></div>';
-    html+='<div class="card-row"><span class="card-label">数量 × 格子</span><span class="card-value">'+fmt(u.count)+' × '+fmt(u.slots)+'</span></div>';
+    html+='<div class="card-row"><span class="card-label">数量</span><span class="card-value">'+fmt(u.count)+'</span></div>';
     html+='</div>';
   }
   document.getElementById('cardGrid').innerHTML=html;
 }
 
-/* ===== 日志视图（最新三次平衡性更新） ===== */
+/* ===== 日志视图（最新三次检查记录） ===== */
+// 每条记录都带 status：不只记「改了什么」，也记「查过、结果是什么」。
+// 此前公告解析成空数组后会被当成「无变动」静默跳过，日志里什么都看不到。
+var LOG_STATUS = {
+  applied:     '已写入数据表',
+  no_changes:  '解析成功 · 无数值变动',
+  parse_failed:'解析失败 · 水位线未推进，下次重试',
+  test_server: '测试服公告 · 未写入正式数据',
+  skipped:     '解析出内容但一条都没写进去（单位名/属性名对不上）',
+  manual:      '人工手动更新'
+};
 function renderLog(){
   var list = CHANGE_LOG || [];
   var recent = list.slice(-3).reverse();  // 最新在前，最多 3 条
@@ -424,21 +439,23 @@ function renderLog(){
       var date = esc(String(e.date||'').replace('T',' ').slice(0,16));
       var title = esc(e.title||(ver||'未知更新'));
       var ch = e.changes||[];
+      var st = e.status || 'applied';
       html += '<div class="log-entry">';
       html += '<h4>'+title+'</h4>';
       html += '<div class="log-meta">'+(ver?'v'+ver+' · ':'')+date+'</div>';
+      if(LOG_STATUS[st]) html += '<div class="log-status s-'+esc(st)+'">'+LOG_STATUS[st]+'</div>';
       if(ch.length){
         html += '<ul class="log-changes">';
         for(var j=0;j<ch.length;j++){
           var c = ch[j];
           var oldv = (c.old!=null && c.old!=='') ? c.old : '—';
           var newv = (c.new!=null && c.new!=='') ? c.new : '—';
-          html += '<li><b>'+esc(c.unit||'?')+'</b> · '+esc(c.field||'?')+': '+
-                  '<span class="sub">'+esc(oldv)+' → '+esc(newv)+'</span></li>';
+          html += '<li>'+(c.reason?'<span class="log-skip">未写入</span> ':'')+
+                  '<b>'+esc(c.unit||'?')+'</b> · '+esc(c.field||'?')+': '+
+                  '<span class="sub">'+esc(oldv)+' → '+esc(newv)+'</span>'+
+                  (c.reason?' <span class="log-reason">'+esc(c.reason)+'</span>':'')+'</li>';
         }
         html += '</ul>';
-      } else {
-        html += '<div class="log-meta">无数值变动</div>';
       }
       html += '</div>';
     }
@@ -458,6 +475,7 @@ function showDetail(name){
     ['总血量', u.total_hp, ''],
     ['移速', u.speed, 'spd'],
     ['攻击力', u.atk, 'atk'],
+    ['弹药量', u.ammo, ''],
     ['对单输出', u.single_out, ''],
     ['爆发峰值', u.burst, ''],
     ['对单DPS', u.dps, ''],
@@ -469,11 +487,7 @@ function showDetail(name){
     ['射程', u.range, ''],
     ['对空', r['对空'], ''],
     ['数量', u.count, ''],
-    ['占用格子', u.slots, ''],
-    ['解锁费用', u.unlock, ''],
-    ['伤害血量', r['伤害血量'], ''],
-    ['升级经验要求', r['升级经验要求'], ''],
-    ['提供经验', r['提供经验'], '']
+    ['解锁费用', u.unlock, '']
   ];
   var h='<h3>'+u.name+' '+sizeTag(u.size)+(u.move==='飞行'?flyTag():'')+aaTag(u.name)+'</h3>';
   h+='<div class="popup-sub">UNIT #'+u._raw.id+' · '+(u.move==='飞行'?'AIR':'GROUND')+' · '+u.size+'</div>';

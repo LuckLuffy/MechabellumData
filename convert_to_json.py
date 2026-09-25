@@ -9,50 +9,41 @@ OUTPUT_PATH = os.path.join(ROOT_DIR, "frontend", "unit_data.json")
 # 地面单位但被"对空+速度快"规则误判为飞行的，强制标为地面
 GROUND_FORCE = {"台风", "野马", "先知"}
 
-# ===== 公式规则（用户特殊设计）=====
-# 多弹药单位：弹药数（F 对单输出 = E攻击力 × 弹药数）
-MULTI_WEAPON = {
-    "暴雨": 4, "鬼鳐": 2, "先知": 2,
-    "恶灵": 4, "霸主": 4, "泰山": 4, "战争工厂": 2,
+# 对空能力（0 无 / 0.5 部分 / 1 有）。
+# 2026-09 表把「对空」列下线了，但前端要用它算「飞行/地面」并显示对空值，
+# 这里沿用上一版（v1.11.1.1a）发布值，保证页面与旧版一致。
+# ⚠ 对空能力若发生平衡性变动，代码不会感知——需要把「对空」列加回表里。
+# ⚠ 百夫长是 2.0 新单位，上一版没有它的对空值，暂按 0（无对空）处理，待人工确认。
+ANTI_AIR = {
+    "弧光": 0.5, "长弓": 1, "魔眼": 0.5, "尖牙": 1, "狼蛛": 0.5, "鬼鳐": 1,
+    "凤凰": 1, "兵峰": 1, "野马": 1, "先知": 1, "恶灵": 1, "台风": 1,
+    "沙虫": 0.5, "熔点": 1, "雷霆": 1, "霸主": 1, "深渊": 1, "泰山": 0.5,
+    "丧钟": 1,
 }
-# 爆发峰值额外倍率（G = F × M × 倍率）
-BURST_MULTIPLIER = {"雷霆": 3, "深渊": 10}
-# 对单DPS 用爆发峰值/间隔 而非 对单输出/间隔 的单位
-DPS_USE_BURST = {"深渊"}
+ANTI_AIR_DEFAULT = 0
+
+# ===== 公式规则（2026-09 表结构，用户设计）=====
+# 表内只存原始列「攻击力 + 弹药量」，对单输出/爆发峰值/对单DPS 全部由本模块推算。
+# 不再需要按单位名硬编码弹药数或倍率——弹药量已是表内一列。
 
 
-def compute_derived(name: str, atk, count, interval,
-                    single_out, burst, dps) -> tuple:
-    """按规则兜底计算 对单输出/爆发峰值/对单DPS。
+def compute_derived(atk, ammo, count, interval) -> tuple:
+    """推算 对单输出/爆发峰值/对单DPS。
 
-    表格里 F/G/H 是公式，openpyxl data_only 读缓存值；
-    若缓存缺失（如 monitor 保存后未在 Excel 打开重算），按规则推算。
+    规则：
+      对单输出 = 攻击力 × 弹药量
+      爆发峰值 = 对单输出 × 数量
+      对单DPS  = 对单输出 ÷ 攻击间隔
     返回 (single_out, burst, dps)。
     """
-    weapon = MULTI_WEAPON.get(name, 1)
     atk = float(atk or 0)
+    ammo = float(ammo or 0)
     count = float(count or 0)
     interval = float(interval or 0)
 
-    # 对单输出 F = 攻击力 × 弹药数
-    if single_out in (None, ""):
-        single_out = atk * weapon
-    else:
-        single_out = float(single_out)
-
-    # 爆发峰值 G = F × 数量 × 特殊倍率
-    if burst in (None, ""):
-        burst = single_out * count * BURST_MULTIPLIER.get(name, 1)
-    else:
-        burst = float(burst)
-
-    # 对单DPS H = 对单输出/间隔（深渊 = 爆发峰值/间隔）
-    if dps in (None, ""):
-        base = burst if name in DPS_USE_BURST else single_out
-        dps = base / interval if interval else 0
-    else:
-        dps = float(dps)
-
+    single_out = atk * ammo
+    burst = single_out * count
+    dps = single_out / interval if interval else 0
     return single_out, burst, dps
 
 
@@ -61,13 +52,15 @@ def main(source_path=None):
 
     source_path 为 None 时由 load_workbook 自动解析最新版本（累积全部历史变更，
     否则回退基准表）；显式传入（如 run_check 刚保存的新版 xlsx）则导出该文件。
-    用 data_only=True 读公式缓存值，缺失时按规则兜底计算。
+    表内对单输出/爆发峰值/对单DPS 已下线，一律由 compute_derived 按原始列推算。
     """
     wb, ws, row_map, col_map = load_workbook(source_path, data_only=True)
 
     units = []
     for row in range(2, ws.max_row + 1):
         name = ws.cell(row=row, column=1).value
+        if isinstance(name, str):
+            name = name.strip()
         if not name or name in ("补充描述", ""):
             continue
 
@@ -80,15 +73,16 @@ def main(source_path=None):
                     val = val.strip()
                 unit[col_name_zh] = val
 
-        # 按规则兜底计算 对单输出/爆发峰值/对单DPS
+        # 对空：表内已无此列，回退到 ANTI_AIR 清单（见文件头说明）
+        if "对空" not in unit:
+            unit["对空"] = ANTI_AIR.get(name, ANTI_AIR_DEFAULT)
+
+        # 按规则推算 对单输出/爆发峰值/对单DPS
         so, burst, dps = compute_derived(
-            name,
             unit.get("攻击力"),
+            unit.get("弹药量"),
             unit.get("数量"),
             unit.get("攻击间隔"),
-            unit.get("对单输出"),
-            unit.get("爆发峰值"),
-            unit.get("对单DPS"),
         )
         unit["对单输出"] = so
         unit["爆发峰值"] = burst

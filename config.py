@@ -51,7 +51,7 @@ RSS_URL = f"https://store.steampowered.com/feeds/news/app/{STEAM_APP_ID}/"
 STEAM_NEWS_PAGE = f"https://store.steampowered.com/news/app/{STEAM_APP_ID}/view/"
 
 # 基准数据表
-BASELINE_XLSX = os.path.join(ROOT_DIR, "钢铁指挥官兵种单位数据表7.29.xlsx")
+BASELINE_XLSX = os.path.join(ROOT_DIR, "钢铁指挥官兵种数据9.25.xlsx")
 
 # 输出目录
 OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
@@ -63,30 +63,72 @@ LAST_CHECK_FILE = os.path.join(CACHE_DIR, "last_check.json")
 CHANGE_LOG_FILE = os.path.join(CACHE_DIR, "change_log.json")
 
 # 列名映射（Excel列名 → 内部字段名）
-# 2026-08 新表结构：攻击力/对单输出/爆发峰值/对单DPS
+# 2026-09 新表结构：表内只存「攻击力 + 弹药量」等原始值，
+# 对单输出/爆发峰值/对单DPS 由 convert_to_json 推算，不是表内列。
+# 已下线的列：对单输出、爆发峰值、对单DPS、占用格子、伤害血量、升级经验要求、提供经验
 COLUMN_MAP = {
     "兵种名称": "name",
     "造价": "cost",
     "单体血量": "hp",
     "移速": "speed",
     "攻击力": "atk",
-    "对单输出": "single_out",
-    "爆发峰值": "burst",
-    "对单DPS": "dps",
+    "弹药量": "ammo",
     "溅射范围": "splash",
     "攻击间隔": "interval",
     "射程": "range",
     "对空": "anti_air",
     "数量": "count",
-    "占用格子": "slots",
     "解锁费用": "unlock_cost",
-    "伤害血量": "damage_hp",
-    "升级经验要求": "upgrade_exp",
-    "提供经验": "exp_reward",
 }
 
 # 反向映射
 FIELD_TO_COLUMN = {v: k for k, v in COLUMN_MAP.items()}
+
+# 公告属性名 → 表内列名。Deepseek 返回的属性名与表内列名常有出入
+# （公告写「单次攻击」，表内叫「攻击力」），不归一化会在 apply_change 里被
+# 当成未知列名静默跳过。
+FIELD_ALIASES = {
+    "单次攻击": "攻击力",
+    "单发伤害": "攻击力",
+    "攻击": "攻击力",
+    "攻击力": "攻击力",
+    "弹药数": "弹药量",
+    "弹药": "弹药量",
+    "武器数": "弹药量",
+    "单体血量": "单体血量",
+    "血量": "单体血量",
+    "生命": "单体血量",
+    "生命值": "单体血量",
+    "移速": "移速",
+    "速度": "移速",
+    "移动速度": "移速",
+    "造价": "造价",
+    "费用": "造价",
+    "价格": "造价",
+    "攻击间隔": "攻击间隔",
+    "间隔": "攻击间隔",
+    "攻速": "攻击间隔",
+    "溅射范围": "溅射范围",
+    "溅射": "溅射范围",
+    "射程": "射程",
+    "对空": "对空",
+    "数量": "数量",
+    "解锁费用": "解锁费用",
+    "解锁": "解锁费用",
+}
+
+# 公告里的派生字段：表内没有对应列，不能直接写入（值口径是 攻击力×弹药量），
+# 只登记到变更日志供人工复核，不静默丢弃。
+DERIVED_FIELDS = {"对单输出", "爆发峰值", "对单DPS", "总DPS"}
+
+# 公告单位名 → 表内单位名。游戏内译名与表内译名不一致，不映射会 [SKIP] 未知单位。
+UNIT_ALIASES = {
+    "漩涡": "磁暴",
+    "虚空之眼": "魔眼",
+}
+
+# 测试服公告不写入正式数据（测试服数值经常不上线）
+TEST_SERVER_MARKER = "[Test Server]"
 
 # 平衡性关键词（中英文）
 BALANCE_KEYWORDS = [

@@ -96,13 +96,18 @@ def find_new_posts() -> list[dict]:
 
 
 def get_latest_version(items: list[dict]) -> str:
-    """从公告标题中提取最新版本号"""
+    """从公告标题中提取最新版本号。
+
+    items 通常是旧→新排列，因此取最后一个匹配（最早的写法是返回首个匹配，
+    结果拿到的是最旧那篇的版本号，output 文件名会串味）。
+    """
+    found = ""
     for item in items:
         # 匹配 "Update X.X.X" 或 "X.X.X" 版本号
         match = re.search(r"(\d+\.\d+(?:\.\d+(?:\.\d+)?)?[a-z]?)", item["title"])
         if match:
-            return match.group(1)
-    return ""
+            found = match.group(1)
+    return found
 
 
 if __name__ == "__main__":

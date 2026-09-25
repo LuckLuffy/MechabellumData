@@ -3,19 +3,28 @@ import json
 import os
 import re
 import html as html_mod
-from config import COLUMN_MAP, CACHE_DIR, DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
+from config import (COLUMN_MAP, CACHE_DIR, DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL,
+                    DEEPSEEK_MODEL, TEST_SERVER_MARKER)
 
 PARSED_DIR = os.path.join(CACHE_DIR, "parsed_posts")
+
+# 单篇公告送模型的正文上限（字符）。实测最长公告清洗后约 12k 字符，
+# 留 3 倍余量；真超了会打印警告，不静默截断。
+MAX_POST_CHARS = 40000
+# 单次解析的返回上限。一次更新列十几条变动就需要 2k+ tokens，1024 会截断。
+MAX_RESPONSE_TOKENS = 8000
 
 EXTRACTION_PROMPT = """从以下 Mechabellum 更新公告中，提取所有兵种数值变动。
 
 返回纯净JSON数组（不要markdown代码块），每个变动一个对象：
 [{"unit": "中文单位名", "field": "属性名", "old": 旧值或null, "new": "新值或描述"}]
 
-属性名限定为：造价 单体血量 移速 单次攻击 溅射范围 攻击间隔 射程 对空 数量 占用格子 解锁费用
+属性名限定为：攻击力 弹药量 单体血量 移速 造价 溅射范围 攻击间隔 射程 对空 数量 解锁费用
 
 规则：
 - 单位名必须用中文（如爬虫、弧光、尖牙、台风、火神、沙虫等）
+- 公告里的「单次攻击」「单发伤害」「攻击」一律按「攻击力」输出
+- 不要输出 对单输出/爆发峰值/对单DPS/总DPS —— 这些由数据表按 攻击力×弹药量 推算，不是原始属性
 - 数值变动可能是绝对值（"263"→"300"）或相对值（"+30%"/"-15%"）
 - 新增单位或科技不要提取，只提取已有基础属性的变更
 - 如果公告没有数值变动，返回空数组[]
@@ -48,6 +57,15 @@ def is_balance_update(post: dict) -> bool:
         if kw.lower() in combined:
             return True
     return False
+
+
+def is_test_server(post: dict) -> bool:
+    """判断是否为测试服公告。
+
+    测试服数值经常不上线（2.0x2 把猎犬血量改成 1054，正式服最终是 872），
+    不能写进正式数据，但跳过要留痕，不能静默。
+    """
+    return TEST_SERVER_MARKER.lower() in (post.get("title", "") or "").lower()
 
 
 def clean_html(html_str: str) -> str:
@@ -99,12 +117,20 @@ def parse_changes(post: dict):
         )
 
         text = clean_html(post["description"])
-        if len(text) > 8000:
-            text = text[:8000] + "\n...[truncated]"
+        # 截断上限必须留足：平衡性章节通常排在公告靠后位置（Update 2.0 的
+        # 「Standard Versus - Balance Adjustments」位于清洗后正文的 7428–10654 字符），
+        # 旧上限 8000 会把整个平衡性章节切掉，模型只能返回 []，
+        # 再被上层当成「确实无变动」推进水位线 —— 公告被静默丢弃。
+        if len(text) > MAX_POST_CHARS:
+            print(f"[WARN] 公告超长（{len(text)} 字符 > {MAX_POST_CHARS}），已截断，"
+                  f"平衡性章节可能被切掉，请人工复核：{post.get('title','')}")
+            text = text[:MAX_POST_CHARS] + "\n...[truncated]"
 
         message = client.messages.create(
             model=DEEPSEEK_MODEL,
-            max_tokens=1024,
+            # 旧值 1024 在一次更新列十几条变动时会被截断，返回空串/半截 JSON，
+            # json.loads 抛错 → 解析失败 → 水位线冻结，流水线会卡死在同一篇公告上。
+            max_tokens=MAX_RESPONSE_TOKENS,
             system="你是一个游戏数据分析助手。只返回有效的JSON数组。",
             messages=[{
                 "role": "user",
@@ -122,7 +148,11 @@ def parse_changes(post: dict):
         try:
             changes = json.loads(response_text)
         except json.JSONDecodeError:
-            print(f"[WARN] Deepseek 返回非JSON格式: {response_text[:200]}")
+            if not response_text:
+                print(f"[WARN] Deepseek 返回空响应（{message.stop_reason}）——"
+                      f"多半是 max_tokens={MAX_RESPONSE_TOKENS} 仍不够，建议再调大")
+            else:
+                print(f"[WARN] Deepseek 返回非JSON格式: {response_text[:200]}")
             return None
 
         if isinstance(changes, list):

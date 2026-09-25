@@ -22,9 +22,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import BALANCE_KEYWORDS
 from steam_fetcher import find_new_posts, get_latest_version, update_last_guid, fetch_rss
-from change_parser import is_balance_update, parse_changes, api_key_configured, format_changes_for_display
+from change_parser import (
+    is_balance_update, is_test_server, parse_changes,
+    api_key_configured, format_changes_for_display
+)
 from sheet_updater import (
-    load_workbook, apply_change, save_new_sheet, log_changes, copy_baseline
+    load_workbook, apply_change, save_new_sheet, log_changes, copy_baseline,
+    resolve_field_name, resolve_unit_name
 )
 from convert_to_json import main as export_to_json
 
@@ -72,14 +76,41 @@ def cmd_test():
 
 
 def _resolve_field(field: str):
-    """把 Deepseek 返回的属性名解析为 Excel 列名。"""
-    from config import COLUMN_MAP
-    if field in COLUMN_MAP:
-        return field
-    for cn, en in COLUMN_MAP.items():
-        if cn == field or en == field:
-            return cn
-    return None
+    """把 Deepseek 返回的属性名解析为 Excel 列名（旧接口，保留供外部调用）。"""
+    return resolve_field_name(field)
+
+
+def _apply_changes(ws, row_map: dict, col_map: dict, changes: list[dict]) -> tuple:
+    """应用一批变更，返回 (成功条数, 已写入的变更, 被跳过的变更)。
+
+    被跳过的变更带 reason 字段，调用方要登记到变更日志——
+    静默跳过正是 Update 2.0 丢数据时最难查的一环。
+    """
+    applied = 0
+    done, skipped = [], []
+    for change in changes:
+        unit = change.get("unit", "")
+        field = change.get("field", "")
+        new_val = change.get("new", "")
+        if not unit or not field:
+            continue
+
+        field_cn = resolve_field_name(field)
+        if field_cn is None:
+            skipped.append(dict(change, reason="派生字段/未知属性，需人工换算"))
+            continue
+
+        unit_cn = resolve_unit_name(unit)
+        if unit_cn not in row_map:
+            skipped.append(dict(change, reason=f"未收录单位（{unit_cn}）"))
+            continue
+
+        if apply_change(ws, row_map, col_map, unit, field_cn, str(new_val)):
+            applied += 1
+            done.append(change)
+        else:
+            skipped.append(dict(change, reason="写入失败"))
+    return applied, done, skipped
 
 
 _run_lock = threading.Lock()
@@ -108,44 +139,54 @@ def _run_check_locked() -> dict:
         return result
 
     result["new_posts"] = len(posts)
-    latest_version = get_latest_version(posts) or posts[-1]["title"][:30]
+    # posts 按时间旧→新排列，版本号取末尾（最新）那篇
+    latest_version = get_latest_version([posts[-1]]) or posts[-1]["title"][:30]
     result["version"] = latest_version
 
     wb, ws, row_map, col_map = load_workbook()
-    parse_failed = False  # 是否有平衡帖解析失败（API 异常等），失败则不推进缓存
+    parse_failed = False  # 有平衡帖解析失败则不推进水位线，下次整批重试
 
     for post in posts:
         if not is_balance_update(post):
             continue
 
         result["balance_posts"] += 1
+        # 每篇用各自的版本号，避免整批共用一个版本号时 output 文件名串味
+        post_version = get_latest_version([post]) or post["title"][:30]
+
+        # 测试服公告不写正式数据（测试服数值经常不上线），但要留痕
+        if is_test_server(post):
+            log_changes(post_version, post["title"], [], status="test_server")
+            continue
+
         changes = parse_changes(post)
         if changes is None:  # 解析失败：保留该帖，下次检查重试
             parse_failed = True
+            log_changes(post_version, post["title"], [], status="parse_failed")
             continue
         if not changes:  # 解析成功但确实无数值变动
+            log_changes(post_version, post["title"], [], status="no_changes")
             continue
 
-        applied = 0
-        for change in changes:
-            unit = change.get("unit", "")
-            field = change.get("field", "")
-            new_val = change.get("new", "")
-            if not unit or not field:
-                continue
-            field_en = _resolve_field(field)
-            if field_en is None:
-                continue
-            if apply_change(ws, row_map, col_map, unit, field_en, str(new_val)):
-                applied += 1
+        applied, done, skipped = _apply_changes(ws, row_map, col_map, changes)
 
         if applied > 0:
-            saved_path = save_new_sheet(wb, latest_version)
-            log_changes(latest_version, post["title"], changes)
+            saved_path = save_new_sheet(wb, post_version)
             # 重新导出 frontend/unit_data.json，让 /api/data 反映新版本
             export_to_json(source_path=saved_path)
             result["applied"] += applied
-            result["changes"].extend(changes)
+            result["changes"].extend(done)
+
+        logged = done + skipped
+        if not logged:
+            status = "no_changes"
+        elif applied:
+            status = "applied"
+        else:
+            # 解析出内容却一条都没写进去（单位名/属性名对不上），
+            # 必须显式登记，绝不能当成「无变动」混过去
+            status = "skipped"
+        log_changes(post_version, post["title"], logged, status=status)
 
     if posts and not parse_failed:
         last = posts[-1]
@@ -159,8 +200,10 @@ def _run_check_locked() -> dict:
         )
     elif result["applied"]:
         result["message"] = f"应用 {result['applied']} 条变动至版本 {latest_version}。"
+    elif result["balance_posts"]:
+        result["message"] = "有平衡性公告，但无数值变动需要更新（详情见日志选项卡）。"
     else:
-        result["message"] = "无平衡性数值变动需要更新。"
+        result["message"] = "有新公告，但均非平衡性调整。"
     return result
 
 
