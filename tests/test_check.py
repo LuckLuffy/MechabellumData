@@ -103,10 +103,13 @@ class TestRunCheckExport(unittest.TestCase):
             "news_id": "fail",
             "pub_date": "2026-08-04",
         }
+        # log_changes 必须一起 mock：解析失败现在也要登记日志，
+        # 不隔离会把测试条目写进真实的 cache/change_log.json
         with mock.patch("balance_monitor.find_new_posts", return_value=[post]), \
              mock.patch("balance_monitor.is_balance_update", return_value=True), \
              mock.patch("balance_monitor.parse_changes", return_value=None), \
              mock.patch("balance_monitor.get_latest_version", return_value="1.12"), \
+             mock.patch("balance_monitor.log_changes"), \
              mock.patch("balance_monitor.update_last_guid") as mock_update:
             result = balance_monitor.run_check()
 
